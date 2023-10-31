@@ -76,7 +76,11 @@ class _SignupPage extends State<SignupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Sportify SignUp"), centerTitle: true),
+      appBar: AppBar(
+        title: Text("Sportify SignUp"),
+        centerTitle: true,
+        backgroundColor: Color.fromARGB(255, 230, 0, 0),
+      ),
       body: Container(
         padding: EdgeInsets.all(20),
         child: Form(
@@ -177,7 +181,8 @@ class _SignupPage extends State<SignupPage> {
                 SizedBox(height: 20),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                      minimumSize: Size.fromHeight(50)),
+                      minimumSize: Size.fromHeight(50),
+                      backgroundColor: Color.fromARGB(255, 230, 0, 0)),
                   onPressed: SignUp,
                   icon: Icon(Icons.arrow_forward),
                   label: Text("Sign Up"),
@@ -194,7 +199,7 @@ class _SignupPage extends State<SignupPage> {
                         text: "Login",
                         style: TextStyle(
                           decoration: TextDecoration.underline,
-                          color: Theme.of(context).colorScheme.secondary,
+                          color: Color.fromARGB(255, 230, 0, 0),
                         ),
                       ),
                     ],

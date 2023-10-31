@@ -52,6 +52,7 @@ class ProfilePage extends StatelessWidget {
             String? name = userData['name'];
             String? age = userData['age'];
             String? gender = userData['gender'];
+            String? bio = userData['bio'];
             int? userType = userData['user_type'];
 
             return Scaffold(
@@ -164,6 +165,11 @@ class ProfilePage extends StatelessWidget {
                           'Gender: $gender',
                           style: TextStyle(fontSize: 20),
                         ),
+                        SizedBox(height: 10),
+                        Text(
+                          'Bio: $bio',
+                          style: TextStyle(fontSize: 20),
+                        ),
                         SizedBox(height: 20),
                         Container(
                           width: double.infinity,
@@ -271,7 +277,7 @@ class TabbedSportsContent extends StatelessWidget {
                     isScrollable: true,
                     indicator: BoxDecoration(
                         borderRadius: BorderRadius.circular(50),
-                        color: Colors.redAccent),
+                        color: Color.fromARGB(255, 230, 0, 0)),
                     tabs: tabs.map((tab) {
                       return Tab(
                         icon: Container(

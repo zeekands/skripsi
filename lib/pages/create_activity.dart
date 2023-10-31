@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sportifyapp/pages/myactivity_page.dart';
 
 import 'activity_detail.dart';
 
@@ -81,20 +82,17 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
 
   void addActivity() async {
     try {
-      // Get a reference to the Firestore collection
       CollectionReference activities =
           FirebaseFirestore.instance.collection('activities');
 
-      // Get the next available integer ID
       int nextActivityID = await getNextActivityID();
       int nextParticipantID = await getNextParticipantID();
-
-      String? userTeamCategory;
+      int nextTeamBracketID;
+      String? teamID = await checkUserHaveTeam(selectedSport!);
+      bool userHaveTeam = teamID != null;
 
       if (widget.activityType == 'Sparring') {
-        userTeamCategory = await getTeamCategory();
-
-        if (userTeamCategory != widget.activityType) {
+        if (!userHaveTeam) {
           await showStatusDialog(
               'You must be in a team with the same category to create a Sparring activity.');
           return;
@@ -119,7 +117,8 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
           'registrationStart': registrationStartController.text,
         if (widget.activityType == 'Tournament')
           'registrationEnd': registrationEndController.text,
-        if (widget.activityType == "Normal Activity") // Add this condition
+        if (widget.activityType == 'Sparring') 'activityQuota': "2",
+        if (widget.activityType == "Normal Activity")
           'activityisPrivate': isPrivate,
         if (widget.activityType == "Tournament" ||
             widget.activityType == "Sparring")
@@ -132,15 +131,16 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
 
       if (widget.activityType == 'Normal Activity')
         addParticipant(nextActivityID.toString(), userEmail!);
+      if (widget.activityType == 'Sparring')
+        addTournamentBracket(nextActivityID.toString(), userEmail!, teamID!);
 
       await updateLatestActivityID(nextActivityID);
-
       await showStatusDialog('Activity created successfully!');
 
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ActivityDetailsPage(nextActivityID.toString()),
+          builder: (context) => MyActivityPage(),
         ),
       );
     } catch (e) {
@@ -173,23 +173,51 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
     }
   }
 
+  Future<void> addTournamentBracket(
+      String activityID, String userEmail, String teamID) async {
+    try {
+      CollectionReference brackets =
+          FirebaseFirestore.instance.collection('TournamentBracket');
+
+      int bracketID = await getNextBracketID();
+
+      await brackets.doc(bracketID.toString()).set({
+        'activity_id': activityID,
+        'bracket_id': bracketID,
+        'team_id': teamID,
+        'bracket_slot': 0,
+      });
+
+      await updateLatestBracketID(bracketID);
+    } catch (e) {
+      print('Error adding tournament bracket: $e');
+    }
+  }
+
   Future<int> getNextParticipantID() async {
-    // Assuming you have a separate collection for managing IDs
     CollectionReference idCollection =
         FirebaseFirestore.instance.collection('latest_participant_id');
     DocumentSnapshot snapshot = await idCollection.doc('latest_id').get();
     int latestID = snapshot.exists ? snapshot['id'] : 0;
-    print(latestID);
+    print('latest parcticipant id $latestID');
+    return latestID + 1;
+  }
+
+  Future<int> getNextBracketID() async {
+    CollectionReference idCollection =
+        FirebaseFirestore.instance.collection('latest_bracket_id');
+    DocumentSnapshot snapshot = await idCollection.doc('latest_id').get();
+    int latestID = snapshot.exists ? snapshot['id'] : 0;
+    print('latest bracket id $latestID');
     return latestID + 1;
   }
 
   Future<int> getNextActivityID() async {
-    // Assuming you have a separate collection for managing IDs
     CollectionReference idCollection =
         FirebaseFirestore.instance.collection('latest_activities_id');
     DocumentSnapshot snapshot = await idCollection.doc('latest_id').get();
     int latestID = snapshot.exists ? snapshot['id'] : 0;
-    print(latestID);
+    print('latest activity id $latestID');
     return latestID + 1;
   }
 
@@ -205,26 +233,28 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
     await idCollection.doc('latest_id').set({'id': latestID});
   }
 
-  Future<String?> getTeamCategory() async {
+  Future<void> updateLatestBracketID(int latestID) async {
+    CollectionReference idCollection =
+        FirebaseFirestore.instance.collection('latest_bracket_id');
+    await idCollection.doc('latest_id').set({'id': latestID});
+  }
+
+  Future<String?> checkUserHaveTeam(String sportName) async {
     var userEmail = FirebaseAuth.instance.currentUser?.email;
 
     if (userEmail != null) {
       var userTeamSnapshot = await FirebaseFirestore.instance
           .collection('teams')
           .where('team_creator_email', isEqualTo: userEmail)
+          .where('team_sport', isEqualTo: sportName)
           .get();
 
       if (userTeamSnapshot.docs.isNotEmpty) {
-        return userTeamSnapshot.docs.first['team_sport'];
+        return userTeamSnapshot.docs.first.id;
       }
     }
 
     return null;
-  }
-
-  Future<bool> canCreateActivity() async {
-    var teamCategory = await getTeamCategory();
-    return teamCategory == 'Sparring';
   }
 
   bool isPrivate = false;
@@ -275,7 +305,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                       selectedSport = value;
                     });
                   },
-                  decoration: InputDecoration(labelText: 'Sport Name'),
+                  decoration: InputDecoration(labelText: 'Sport'),
                 );
               },
             ),

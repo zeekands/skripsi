@@ -211,11 +211,19 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
             // Display "Request to Join" button if the user is not a member
             if (!isCurrentUserMember)
               Expanded(
-                child: ElevatedButton(
-                  onPressed: requestToJoinTeam,
-                  child: Text('Request to Join'),
-                ),
+                child:
+                    SizedBox(), // This SizedBox will take all available space
               ),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: requestToJoinTeam,
+                    child: Text('Request to Join'),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),

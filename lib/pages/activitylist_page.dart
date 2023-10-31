@@ -190,11 +190,16 @@ class ActivityListPage extends StatelessWidget {
                                           'Location: ${activity['activityLocation']}'),
                                       Text('Fee: ${activity['activityFee']}'),
                                       if (activity['activityType'] ==
-                                          'Normal Activity')
+                                              'Normal Activity' ||
+                                          activity['activityType'] ==
+                                              'Sparring')
                                         Text(
                                             'Duration in hour: ${activity['activityDuration']}'),
                                       Text(
-                                          'Quota: (0/${activity['activityQuota']})')
+                                          'Quota: (0/${activity['activityQuota']})'),
+                                      Text(
+                                          'Activity Type: ${activity['activityType']}'),
+                                      SizedBox(height: 10)
                                     ],
                                   ),
                                 ),

@@ -24,77 +24,99 @@ class _LoginPageState extends State<LoginPage> {
           email: emailLogin.text.trim(), password: passwordLogin.text.trim());
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Email/Password Salah")));
+          .showSnackBar(SnackBar(content: Text("Invalid Email/Password")));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        padding: EdgeInsets.all(20),
-        child: Form(
-          key: formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: 150, // Adjust the radius as needed
-                backgroundImage: AssetImage('assets/images/sportify_logo.png'),
-              ),
-              SizedBox(height: 20),
-              TextFormField(
-                controller: emailLogin,
-                textInputAction: TextInputAction.next,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: "Email",
-                  border: OutlineInputBorder(),
-                ),
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                validator: (email) =>
-                    email != null && !EmailValidator.validate(email)
-                        ? "Enter a valid email"
-                        : null,
-              ),
-              SizedBox(height: 10),
-              TextFormField(
-                controller: passwordLogin,
-                textInputAction: TextInputAction.done,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: "Password",
-                  border: OutlineInputBorder(),
-                ),
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                validator: (value) => value != null && value.length < 6
-                    ? "Enter at least 6 characters"
-                    : null,
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: login,
-                child: Text("Login"),
-              ),
-              SizedBox(height: 10),
-              RichText(
-                text: TextSpan(
-                  style: TextStyle(color: Colors.grey),
-                  text: "Don't have an account? ",
-                  children: [
-                    TextSpan(
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = widget.onclickSignup,
-                      text: "Sign Up",
-                      style: TextStyle(
-                        decoration: TextDecoration.underline,
-                        color: Theme.of(context).colorScheme.secondary,
+      body: SingleChildScrollView(
+        child: Center(
+          child: Container(
+            padding: EdgeInsets.all(20),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 120,
+                    backgroundImage:
+                        AssetImage('assets/images/sportify_logo.png'),
+                  ),
+                  SizedBox(height: 20),
+                  TextFormField(
+                    controller: emailLogin,
+                    textInputAction: TextInputAction.next,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      labelText: "Email",
+                      border: OutlineInputBorder(),
+                      // border: OutlineInputBorder(
+                      //   borderSide: BorderSide(color: Colors.black, width: 2.0),
+                      // ),
+                      // enabledBorder: OutlineInputBorder(
+                      //   borderSide: BorderSide(color: Colors.white, width: 2.0),
+                      // ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black, width: 2.0),
                       ),
+                      labelStyle: TextStyle(color: Colors.black),
                     ),
-                  ],
-                ),
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    validator: (email) =>
+                        email != null && !EmailValidator.validate(email)
+                            ? "Enter a valid email"
+                            : null,
+                  ),
+                  SizedBox(height: 10),
+                  TextFormField(
+                    controller: passwordLogin,
+                    textInputAction: TextInputAction.done,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: "Password",
+                      border: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black, width: 2.0),
+                      ),
+                      labelStyle: TextStyle(color: Colors.black),
+                    ),
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    validator: (value) => value != null && value.length < 6
+                        ? "Enter at least 6 characters"
+                        : null,
+                  ),
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: login,
+                    child: Text("Login"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color.fromARGB(255, 230, 0, 0),
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  RichText(
+                    text: TextSpan(
+                      style: TextStyle(color: Colors.grey),
+                      text: "Don't have an account? ",
+                      children: [
+                        TextSpan(
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = widget.onclickSignup,
+                          text: "Sign Up",
+                          style: TextStyle(
+                            decoration: TextDecoration.underline,
+                            color: Color.fromARGB(255, 230, 0, 0),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
