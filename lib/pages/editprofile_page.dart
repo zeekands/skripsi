@@ -21,6 +21,28 @@ class _EditProfilePageState extends State<EditProfilePage> {
   File? _image;
   final picker = ImagePicker();
 
+  @override
+  void initState() {
+    super.initState();
+    _nameController.text = widget.user!.displayName ?? '';
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    String uid = widget.user!.uid;
+    DocumentSnapshot userSnapshot =
+        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+    if (userSnapshot.exists) {
+      Map<String, dynamic> userData =
+          userSnapshot.data() as Map<String, dynamic>;
+
+      if (userData.containsKey('age')) {
+        _ageController.text = userData['age'].toString();
+      }
+    }
+  }
+
   Future<void> _uploadImage(String uid) async {
     if (_image != null) {
       Reference storageReference =
@@ -59,10 +81,44 @@ class _EditProfilePageState extends State<EditProfilePage> {
           key: _formKey,
           child: Column(
             children: [
-              // GestureDetector(
-              //   onTap:
-
-              // ),
+              GestureDetector(
+                onTap: () {
+                  // Handle the click event here
+                  print('Clicked on CircleAvatar');
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Center(
+                    child: PopupMenuButton<int>(
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 1,
+                          child: Text('Upload Image'),
+                        ),
+                        PopupMenuItem(
+                          value: 2,
+                          child: Text('Delete Image'),
+                        ),
+                      ],
+                      onSelected: (value) {
+                        if (value == 1) {
+                          // Handle Upload Image option
+                          print('Upload Image');
+                        } else if (value == 2) {
+                          // Handle Delete Image option
+                          print('Delete Image');
+                        }
+                      },
+                      child: CircleAvatar(
+                        radius: 64,
+                        backgroundImage: NetworkImage(
+                          'https://t4.ftcdn.net/jpg/00/64/67/63/360_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg',
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               SizedBox(height: 20),
               TextFormField(
                 controller: _nameController,

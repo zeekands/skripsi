@@ -67,6 +67,9 @@ class ActivityListPage extends StatelessWidget {
               child: CircularProgressIndicator(),
             );
           }
+          print(
+              "Selected Date: ${DateFormat('dd-MM-yyyy').format(selectedDate)}");
+          print("Activities count: ${snapshot.data!.docs.length}");
 
           var activities = snapshot.data!.docs;
 
@@ -80,6 +83,7 @@ class ActivityListPage extends StatelessWidget {
           activities.sort((a, b) {
             DateTime dateA = DateFormat('dd-MM-yyyy').parse(a['activityDate']);
             DateTime dateB = DateFormat('dd-MM-yyyy').parse(b['activityDate']);
+
             return dateA.compareTo(dateB);
           });
 

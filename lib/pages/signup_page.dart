@@ -27,9 +27,9 @@ class _SignupPage extends State<SignupPage> {
   final citySignup = TextEditingController();
 
   String selectedGender = 'Male';
-  String? countryValue = '';
-  String? stateValue = '';
-  String? cityValue = '';
+  String? countryValue = 'Indonesia';
+  String? stateValue = 'East Java';
+  String? cityValue = 'Kota Surabaya';
 
   Future SignUp() async {
     print("function signup");
@@ -137,7 +137,7 @@ class _SignupPage extends State<SignupPage> {
                     return null;
                   },
                 ),
-                SizedBox(height: 10),
+                SizedBox(height: 50),
                 DropdownButtonFormField<String>(
                   value: selectedGender,
                   onChanged: (String? value) {

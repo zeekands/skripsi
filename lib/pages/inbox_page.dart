@@ -31,6 +31,7 @@ class _InboxPageState extends State<InboxPage>
           child: Container(
             // margin: const EdgeInsets.all(4.0),
             color: Colors.white,
+
             child: TabBar(
               indicatorSize: TabBarIndicatorSize.label,
               indicator: BoxDecoration(
@@ -222,15 +223,13 @@ class InboxTab extends StatelessWidget {
             print(
                 'Team Name: $teamName, Sport: $teamSport, Creator Email: $teamCreatorEmail');
 
-            // Now you can call showTeamMemberDialog2 here
             showDialog(
               context: context,
               builder: (BuildContext context) {
                 return AlertDialog(
                   title: Center(child: Text('Join Request')),
                   content: Column(
-                    mainAxisSize: MainAxisSize
-                        .min, // Make the column take the minimum vertical space needed
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -238,19 +237,16 @@ class InboxTab extends StatelessWidget {
                           CircleAvatar(),
                           Text(
                             ">>",
-                            style: TextStyle(
-                                fontSize: 24), // Adjust the font size as needed
+                            style: TextStyle(fontSize: 24),
                           ),
                           CircleAvatar(),
                         ],
                       ),
-                      SizedBox(
-                          height:
-                              8), // Add a small vertical space between the Row and the Text
+                      SizedBox(height: 8),
                       Container(
                         child: Text(
                           '$requestEmail has requested to join $teamName',
-                          textAlign: TextAlign.center, // Center the text
+                          textAlign: TextAlign.center,
                         ),
                       ),
                     ],
@@ -264,9 +260,6 @@ class InboxTab extends StatelessWidget {
                             .doc(teamMemberId)
                             .update({'status': 'Confirmed'}).then((value) {
                           print('Request accepted');
-                          // Optionally, you may want to remove the notification or mark it as accepted.
-                          // This depends on your specific use case.
-                          // For example:
                           FirebaseFirestore.instance
                               .collection('notifications')
                               .doc(notificationId)
@@ -444,6 +437,130 @@ class InboxTab extends StatelessWidget {
     });
   }
 
+  void showActivityRequestDialog2(
+      BuildContext context, String bracketId, String notificationId) {
+    FirebaseFirestore.instance
+        .collection('TournamentBracket')
+        .doc(bracketId)
+        .get()
+        .then((DocumentSnapshot documentSnapshot) {
+      if (documentSnapshot.exists) {
+        Map<String, dynamic> data =
+            documentSnapshot.data() as Map<String, dynamic>;
+        String requestTeam = data['team_id'];
+        String activityId = data['activity_id'];
+        String status = data['status'];
+        print(
+            'Team ID: $requestTeam, Activity ID: $activityId, Status: $status');
+
+        FirebaseFirestore.instance
+            .collection('activities')
+            .doc(activityId)
+            .get()
+            .then((DocumentSnapshot activityDocumentSnapshot) {
+          if (activityDocumentSnapshot.exists) {
+            Map<String, dynamic> activityData =
+                activityDocumentSnapshot.data() as Map<String, dynamic>;
+            String activityTitle = activityData['activityTitle'];
+            String activitySport = activityData['sportName'];
+            String activityCreatorEmail = activityData['user_email'];
+            print(
+                'Activity Title: $activityTitle, Sport: $activitySport, Creator Email: $activityCreatorEmail');
+
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: Center(child: Text('Join Request')),
+                  content: Column(
+                    mainAxisSize: MainAxisSize
+                        .min, // Make the column take the minimum vertical space needed
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          CircleAvatar(),
+                          Text(
+                            ">>",
+                            style: TextStyle(
+                                fontSize: 24), // Adjust the font size as needed
+                          ),
+                          CircleAvatar(),
+                        ],
+                      ),
+                      SizedBox(
+                          height:
+                              8), // Add a small vertical space between the Row and the Text
+                      Container(
+                        child: Text(
+                          '$requestTeam has requested to join your activity $activityTitle',
+                          textAlign: TextAlign.center, // Center the text
+                        ),
+                      ),
+                    ],
+                  ),
+                  actions: <Widget>[
+                    TextButton(
+                      child: Text('Accept'),
+                      onPressed: () {
+                        FirebaseFirestore.instance
+                            .collection('TournamentBracket')
+                            .doc(bracketId)
+                            .update({'status': 'Confirmed'}).then((value) {
+                          print('Request accepted');
+                          FirebaseFirestore.instance
+                              .collection('notifications')
+                              .doc(notificationId)
+                              .delete();
+                        }).catchError((error) {
+                          print('Error accepting request: $error');
+                        });
+                        Navigator.of(context).pop(); // Close the dialog
+                      },
+                    ),
+                    TextButton(
+                      child: Text('Decline'),
+                      onPressed: () {
+                        FirebaseFirestore.instance
+                            .collection('TournamentBracket')
+                            .doc(bracketId)
+                            .delete()
+                            .then((value) {
+                          print('Request declined');
+                          FirebaseFirestore.instance
+                              .collection('notifications')
+                              .doc(notificationId)
+                              .delete();
+                        }).catchError((error) {
+                          print('Error declining request: $error');
+                        });
+                        Navigator.of(context).pop(); // Close the dialog
+                      },
+                    ),
+                    TextButton(
+                      child: Text('Close'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
+                );
+              },
+            );
+          } else {
+            print('Activity Document does not exist');
+          }
+        }).catchError((error) {
+          print('Error getting activity document: $error');
+        });
+      } else {
+        print('Document does not exist');
+      }
+    }).catchError((error) {
+      print('Error getting document: $error');
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     Stream<QuerySnapshot> notificationsStream;
@@ -488,6 +605,7 @@ class InboxTab extends StatelessWidget {
             var message = notificationData['message'];
             var teamMemberId = notificationData['teammemberid'];
             var participantId = notificationData['participantid'];
+            var bracketId = notificationData['bracketid'];
             var notificationId = notifications[index].id;
 
             return Card(
@@ -499,8 +617,15 @@ class InboxTab extends StatelessWidget {
                     showTeamMemberDialog(context, teamMemberId, notificationId);
                   }
                   if (type == 'Request' && title == 'Activity') {
-                    showActivityRequestDialog(
-                        context, participantId, notificationId);
+                    if (participantId != null) {
+                      print("masuk prticipant");
+                      showActivityRequestDialog(
+                          context, participantId, notificationId);
+                    } else {
+                      print(bracketId);
+                      showActivityRequestDialog2(
+                          context, bracketId, notificationId);
+                    }
                   }
                 },
               ),

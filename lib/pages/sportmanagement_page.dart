@@ -151,7 +151,10 @@ class SportsManagementPageState extends State<SportsManagementPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Sports Management')),
+      appBar: AppBar(
+        title: Text('Sports Management'),
+        backgroundColor: Color.fromARGB(255, 230, 0, 0),
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('sports').snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
@@ -181,6 +184,7 @@ class SportsManagementPageState extends State<SportsManagementPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => addSport(context),
         child: Icon(Icons.add),
+        backgroundColor: Color.fromARGB(255, 230, 0, 0),
       ),
     );
   }

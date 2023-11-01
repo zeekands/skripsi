@@ -27,6 +27,9 @@ class AdminPanelPage extends StatelessWidget {
                   );
                 },
                 child: Text('Sports Management'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color.fromARGB(255, 230, 0, 0),
+                ),
               ),
             ),
             SizedBox(height: 20),
@@ -42,6 +45,9 @@ class AdminPanelPage extends StatelessWidget {
                   );
                 },
                 child: Text('Location Management'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color.fromARGB(255, 230, 0, 0),
+                ),
               ),
             ),
             SizedBox(height: 20),
@@ -57,6 +63,9 @@ class AdminPanelPage extends StatelessWidget {
                   );
                 },
                 child: Text('User Management'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color.fromARGB(255, 230, 0, 0),
+                ),
               ),
             ),
           ],

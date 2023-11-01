@@ -2,10 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ActivityDetailsPage extends StatelessWidget {
+class ActivityDetailsPage2 extends StatelessWidget {
   final String activityID;
 
-  ActivityDetailsPage(this.activityID);
+  ActivityDetailsPage2(this.activityID);
 
   void editActivity() {
     // Implement your edit action here
@@ -518,113 +518,39 @@ class ActivityDetailsPage extends StatelessWidget {
                         'Participants:',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      Column(
-                        children: [
-                          if (activity['activityType'] == "Normal Activity")
-                            StreamBuilder(
-                              stream: FirebaseFirestore.instance
-                                  .collection('participants')
-                                  .where('activity_id', isEqualTo: activityID)
-                                  .where('status', isEqualTo: 'Confirmed')
-                                  .snapshots(),
-                              builder: (
-                                BuildContext context,
-                                AsyncSnapshot<QuerySnapshot> snapshot,
-                              ) {
-                                if (snapshot.hasError) {
-                                  return Text('Error: ${snapshot.error}');
-                                }
+                      StreamBuilder(
+                        stream: FirebaseFirestore.instance
+                            .collection('participants')
+                            .where('activity_id', isEqualTo: activityID)
+                            .where('status', isEqualTo: 'Confirmed')
+                            .snapshots(),
+                        builder: (
+                          BuildContext context,
+                          AsyncSnapshot<QuerySnapshot> snapshot,
+                        ) {
+                          if (snapshot.hasError) {
+                            return Text('Error: ${snapshot.error}');
+                          }
 
-                                if (snapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return CircularProgressIndicator();
-                                }
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return CircularProgressIndicator();
+                          }
 
-                                var participants = snapshot.data!.docs;
+                          var participants = snapshot.data!.docs;
 
-                                if (participants.isEmpty) {
-                                  return Text(
-                                      'No participants found for this activity.');
-                                }
+                          if (participants.isEmpty) {
+                            return Text(
+                                'No participants found for this activity.');
+                          }
 
-                                return Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: participants
-                                      .map((participant) =>
-                                          Text(participant['user_email']))
-                                      .toList(),
-                                );
-                              },
-                            ),
-                          if (activity['activityType'] == "Tournament" ||
-                              activity['activityType'] == "Sparring")
-                            StreamBuilder(
-                              stream: FirebaseFirestore.instance
-                                  .collection('TournamentBracket')
-                                  .where('activity_id', isEqualTo: activityID)
-                                  .where('status', isEqualTo: 'Confirmed')
-                                  .snapshots(),
-                              builder: (
-                                BuildContext context,
-                                AsyncSnapshot<QuerySnapshot> snapshot,
-                              ) {
-                                if (snapshot.hasError) {
-                                  return Text('Error: ${snapshot.error}');
-                                }
-
-                                if (snapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return CircularProgressIndicator();
-                                }
-
-                                var bracketDocuments = snapshot.data!.docs;
-
-                                if (bracketDocuments.isEmpty) {
-                                  return Text(
-                                      'No participants found for this activity.');
-                                }
-
-                                return Column(
-                                  children: bracketDocuments.map(
-                                    (bracket) {
-                                      String teamID = bracket['team_id'];
-                                      return FutureBuilder<DocumentSnapshot>(
-                                        future: FirebaseFirestore.instance
-                                            .collection('teams')
-                                            .doc(teamID)
-                                            .get(),
-                                        builder: (BuildContext context,
-                                            AsyncSnapshot<DocumentSnapshot>
-                                                teamSnapshot) {
-                                          if (teamSnapshot.hasError) {
-                                            return Text(
-                                                'Error: ${teamSnapshot.error}');
-                                          }
-
-                                          if (teamSnapshot.connectionState ==
-                                              ConnectionState.waiting) {
-                                            return CircularProgressIndicator();
-                                          }
-
-                                          var teamData = teamSnapshot.data;
-
-                                          if (teamData == null ||
-                                              !teamData.exists) {
-                                            return Text('Team data not found');
-                                          }
-
-                                          return Text(teamData['team_name'],
-                                              textAlign: TextAlign
-                                                  .left); // Access the data you need from the 'teams' collection
-                                        },
-                                      );
-                                    },
-                                  ).toList(),
-                                );
-                              },
-                            ),
-                        ],
+                          return Column(
+                            children: participants
+                                .map((participant) =>
+                                    Text(participant['user_email']))
+                                .toList(),
+                          );
+                        },
                       ),
                       Expanded(
                         child:
