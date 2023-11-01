@@ -5,6 +5,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
+import 'package:path/path.dart';
+
 class EditProfilePage extends StatefulWidget {
   final User? user;
 
@@ -18,8 +20,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
   TextEditingController _nameController = TextEditingController();
   TextEditingController _ageController = TextEditingController();
-  File? _image;
-  final picker = ImagePicker();
+  TextEditingController _bioController = TextEditingController();
+  File? image;
+  final ImagePicker picker = ImagePicker();
 
   @override
   void initState() {
@@ -29,9 +32,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> _fetchUserData() async {
-    String uid = widget.user!.uid;
-    DocumentSnapshot userSnapshot =
-        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.user!.email)
+        .get();
 
     if (userSnapshot.exists) {
       Map<String, dynamic> userData =
@@ -40,30 +44,138 @@ class _EditProfilePageState extends State<EditProfilePage> {
       if (userData.containsKey('age')) {
         _ageController.text = userData['age'].toString();
       }
+      if (userData.containsKey('bio')) {
+        _bioController.text = userData['bio'];
+      }
     }
   }
 
-  Future<void> _uploadImage(String uid) async {
-    if (_image != null) {
-      Reference storageReference =
-          FirebaseStorage.instance.ref().child('profile_images/$uid.jpg');
-      UploadTask uploadTask = storageReference.putFile(_image!);
-      await uploadTask.whenComplete(() => print('Image uploaded to Firebase'));
+  Future<void> _uploadImage() async {
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    setState(() {
+      if (pickedFile != null) {
+        image = File(pickedFile.path);
+        uploadFile();
+      } else {
+        print('No image selected.');
+      }
+    });
+  }
+
+  Future<void> uploadFile() async {
+    if (image == null) return;
+    final fileName = basename(image!.path);
+    final destination = 'profile_images/$fileName';
+
+    try {
+      UploadTask task =
+          FirebaseStorage.instance.ref(destination).putFile(image!);
+      TaskSnapshot snapshot = await task;
+
+      // Get the download URL for the image
+      String downloadUrl = await snapshot.ref.getDownloadURL();
+
+      // Update user data in Firestore with the download URL
+      String uid = widget.user!.uid;
+      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+        'profileImageUrl':
+            downloadUrl, // Assuming you have a field named 'profileImageUrl'
+      });
+
+      print('Image uploaded to Firebase');
+    } catch (e) {
+      print('Error uploading image: $e');
     }
   }
 
-  void _submitForm() async {
+  void showDialogUploadImage(BuildContext context) {
+    String? selectedImagePath; // Variable to hold the selected image path
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: Text("Upload Image"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  selectedImagePath != null
+                      ? Image.file(
+                          File(selectedImagePath!),
+                          height: 100, // Set the desired height
+                          width: 100, // Set the desired width
+                        )
+                      : SizedBox(),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final pickedFile =
+                          await picker.pickImage(source: ImageSource.gallery);
+
+                      if (pickedFile != null) {
+                        setState(() {
+                          selectedImagePath = pickedFile.path;
+                        });
+                      }
+                    },
+                    child: Text("Select Image"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color.fromARGB(255, 230, 0, 0),
+                    ),
+                  ),
+                  // Show nothing if no image is selected
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    if (selectedImagePath != null) {
+                      image = File(selectedImagePath!);
+                      uploadFile();
+                      Navigator.of(context).pop(); // Close the dialog
+                    }
+                  },
+                  child: Text("Upload"),
+                  style: ButtonStyle(
+                    foregroundColor: MaterialStateProperty.all<Color>(
+                        Colors.black), // Change the color here
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close the dialog
+                  },
+                  child: Text("Close"),
+                  style: ButtonStyle(
+                    foregroundColor: MaterialStateProperty.all<Color>(
+                        Colors.black), // Change the color here
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _submitForm(BuildContext context) async {
     if (_formKey.currentState!.validate()) {
       String uid = widget.user!.uid;
       String newName = _nameController.text;
       String newAge = _ageController.text;
+      String newBio = _bioController.text;
 
-      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.user!.email)
+          .update({
         'name': newName,
         'age': newAge,
+        'bio': newBio,
       });
-
-      await _uploadImage(uid);
 
       Navigator.pop(context);
     }
@@ -74,6 +186,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Edit Profile'),
+        backgroundColor: Color.fromARGB(255, 230, 0, 0),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -102,18 +215,37 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ],
                       onSelected: (value) {
                         if (value == 1) {
-                          // Handle Upload Image option
+                          showDialogUploadImage(context);
                           print('Upload Image');
                         } else if (value == 2) {
                           // Handle Delete Image option
                           print('Delete Image');
                         }
                       },
-                      child: CircleAvatar(
-                        radius: 64,
-                        backgroundImage: NetworkImage(
-                          'https://t4.ftcdn.net/jpg/00/64/67/63/360_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg',
-                        ),
+                      child: FutureBuilder<DocumentSnapshot>(
+                        future: FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(widget.user!.email)
+                            .get(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return CircularProgressIndicator(); // or some loading indicator
+                          }
+                          if (snapshot.hasError) {
+                            return Text('Error: ${snapshot.error}');
+                          }
+                          String? profileImageUrl =
+                              snapshot.data!['profileImageUrl'];
+                          return CircleAvatar(
+                            radius: 64,
+                            backgroundImage: profileImageUrl != null &&
+                                    profileImageUrl.isNotEmpty
+                                ? NetworkImage(profileImageUrl)
+                                : AssetImage('assets/images/defaultprofile.png')
+                                    as ImageProvider, // Cast to ImageProvider
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -141,10 +273,23 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   return null;
                 },
               ),
+              TextFormField(
+                controller: _bioController,
+                decoration: InputDecoration(labelText: 'Bio'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your bio';
+                  }
+                  return null;
+                },
+              ),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: _submitForm,
+                onPressed: () => _submitForm(context), // Fix is here
                 child: Text('Save Changes'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color.fromARGB(255, 230, 0, 0),
+                ),
               ),
             ],
           ),

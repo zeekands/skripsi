@@ -111,6 +111,61 @@ class _CategoryDropdownState extends State<CategoryDropdown> {
   }
 }
 
+Future<void> _showCreateTeamDialog(BuildContext context) async {
+  TextEditingController teamNameController = TextEditingController();
+  TextEditingController descriptionController = TextEditingController();
+  String selectedCategory = '';
+
+  await FirebaseFirestore.instance
+      .collection('latest_team_id')
+      .doc('latest_id')
+      .get()
+      .then((value) {
+    int latestId = value.data()?['id'] ?? 0;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Create Team'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: teamNameController,
+                decoration: InputDecoration(labelText: 'Team Name'),
+              ),
+              TextFormField(
+                controller: descriptionController,
+                decoration: InputDecoration(labelText: 'Description'),
+              ),
+              CategoryDropdown(
+                onCategoryChanged: (category) {
+                  selectedCategory = category; // Update selectedCategory
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                // Rest of the code remains the same
+              },
+              child: Text('Create Team'),
+            ),
+          ],
+        );
+      },
+    );
+  });
+}
+
 class MyTeamTab extends StatefulWidget {
   @override
   _MyTeamTabState createState() => _MyTeamTabState();
@@ -373,8 +428,9 @@ class TeamsTab extends StatelessWidget {
                   child: TabBar(
                     isScrollable: true,
                     indicator: BoxDecoration(
-                        borderRadius: BorderRadius.circular(50),
-                        color: Colors.redAccent),
+                      borderRadius: BorderRadius.circular(50),
+                      color: Color.fromARGB(255, 230, 0, 0),
+                    ),
                     tabs: tabs.map((tab) {
                       return Tab(
                         icon: Container(

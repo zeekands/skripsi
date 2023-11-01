@@ -30,6 +30,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
   DateTime selectedDate = DateTime.now();
   TimeOfDay selectedTime = TimeOfDay.now();
   String? userEmail = FirebaseAuth.instance.currentUser?.email;
+  bool isSubmitting = false;
 
   @override
   Future<void> showStatusDialog(String status) async {
@@ -81,6 +82,13 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
   }
 
   void addActivity() async {
+    if (isSubmitting) {
+      return; // If already submitting, exit early to prevent duplicate submissions
+    }
+
+    setState(() {
+      isSubmitting = true;
+    });
     try {
       CollectionReference activities =
           FirebaseFirestore.instance.collection('activities');
@@ -137,7 +145,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
       await updateLatestActivityID(nextActivityID);
       await showStatusDialog('Activity created successfully!');
 
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => MyActivityPage(),

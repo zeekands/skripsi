@@ -66,6 +66,44 @@ Future<String> getSportImage(String sportName) async {
 }
 
 class MyActivityTab extends StatelessWidget {
+  Future<int> getTotalParticipants(String activityId) async {
+    try {
+      // Get a reference to the Firestore collection
+      CollectionReference participants =
+          FirebaseFirestore.instance.collection('participants');
+
+      // Query Firestore to get the number of participants for the provided activity ID
+      QuerySnapshot snapshot =
+          await participants.where('activity_id', isEqualTo: activityId).get();
+
+      return snapshot.docs.length;
+    } catch (e) {
+      // Handle errors here
+      print('Error fetching total participants: $e');
+      return 0; // Return 0 in case of an error
+    }
+  }
+
+  Future<int> getTotalTournamentBracket(String activityId) async {
+    try {
+      // Get a reference to the Firestore collection
+      CollectionReference brackets =
+          FirebaseFirestore.instance.collection('TournamentBrackets');
+
+      // Query Firestore to get the total number of brackets for the provided activityId
+      QuerySnapshot snapshot =
+          await brackets.where('activity_id', isEqualTo: activityId).get();
+
+      // Return the total number of brackets
+      return snapshot.size;
+    } catch (e) {
+      // Handle errors here
+      print('Error fetching total tournament brackets: $e');
+      // Return 0 in case of an error
+      return 0;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     String? userEmail = FirebaseAuth.instance.currentUser?.email;
@@ -161,7 +199,40 @@ class MyActivityTab extends StatelessWidget {
                               if (activity['activityType'] == 'Normal Activity')
                                 Text(
                                     'Duration in hour: ${activity['activityDuration']}'),
-                              Text('Quota: (0/${activity['activityQuota']})')
+                              if (activity['activityType'] == 'Normal Activity')
+                                FutureBuilder<int>(
+                                  future: getTotalParticipants(activity.id),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return CircularProgressIndicator();
+                                    } else if (snapshot.hasError) {
+                                      return Text('Error: ${snapshot.error}');
+                                    } else {
+                                      return Text(
+                                          'Quota: (${snapshot.data}/${activity['activityQuota']})');
+                                    }
+                                  },
+                                ),
+                              if (activity['activityType'] == 'Tournament' ||
+                                  activity['activityType'] == 'Sparring')
+                                FutureBuilder<int>(
+                                  future:
+                                      getTotalTournamentBracket(activity.id),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return CircularProgressIndicator();
+                                    } else if (snapshot.hasError) {
+                                      return Text('Error: ${snapshot.error}');
+                                    } else {
+                                      return Text(
+                                          'Tournament Brackets: ${snapshot.data}');
+                                    }
+                                  },
+                                ),
+                              Text(
+                                  'Activity Type: ${activity['activityType']}'),
                             ],
                           ),
                         ),

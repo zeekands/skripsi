@@ -220,6 +220,9 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
                   child: ElevatedButton(
                     onPressed: requestToJoinTeam,
                     child: Text('Request to Join'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color.fromARGB(255, 230, 0, 0),
+                    ),
                   ),
                 ),
               ],

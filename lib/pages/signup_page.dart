@@ -51,13 +51,15 @@ class _SignupPage extends State<SignupPage> {
         'gender': selectedGender,
         'country': countryValue,
         'city': cityValue,
+        'profileImageUrl': "",
+        'bio': "Tell us about yourself",
         'user_type': 0
       };
 
       // Save additional data to Firebase Firestore (you should initialize Firebase Firestore in your app)
       await FirebaseFirestore.instance
           .collection('users')
-          .doc(user.uid)
+          .doc(user.email)
           .set(userData);
 
       // Navigate to SignUp2

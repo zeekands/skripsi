@@ -40,7 +40,7 @@ class ProfilePage extends StatelessWidget {
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
           .collection('users')
-          .doc(user?.uid)
+          .doc(user?.email)
           .snapshots(),
       builder:
           (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
@@ -54,6 +54,7 @@ class ProfilePage extends StatelessWidget {
             String? age = userData['age'];
             String? gender = userData['gender'];
             String? bio = userData['bio'];
+            String? imageUrl = userData['profileImageUrl'];
             int? userType = userData['user_type'];
 
             return Scaffold(
@@ -128,43 +129,12 @@ class ProfilePage extends StatelessWidget {
                 body: SingleChildScrollView(
                   child: Column(
                     children: [
-                      GestureDetector(
-                        onTap: () {
-                          // Handle the click event here
-                          print('Clicked on CircleAvatar');
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Center(
-                            child: PopupMenuButton<int>(
-                              itemBuilder: (context) => [
-                                PopupMenuItem(
-                                  value: 1,
-                                  child: Text('Upload Image'),
-                                ),
-                                PopupMenuItem(
-                                  value: 2,
-                                  child: Text('Delete Image'),
-                                ),
-                              ],
-                              onSelected: (value) {
-                                if (value == 1) {
-                                  // Handle Upload Image option
-                                  print('Upload Image');
-                                } else if (value == 2) {
-                                  // Handle Delete Image option
-                                  print('Delete Image');
-                                }
-                              },
-                              child: CircleAvatar(
-                                radius: 64,
-                                backgroundImage: NetworkImage(
-                                  'https://t4.ftcdn.net/jpg/00/64/67/63/360_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg',
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                      CircleAvatar(
+                        radius: 64,
+                        backgroundImage: imageUrl != null && imageUrl.isNotEmpty
+                            ? NetworkImage(imageUrl)
+                            : AssetImage('assets/images/defaultprofile.png')
+                                as ImageProvider,
                       ),
                       Padding(
                         padding: const EdgeInsets.all(16.0),

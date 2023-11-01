@@ -552,7 +552,45 @@ class ActivityDetailsPage extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: participants
                                       .map((participant) =>
-                                          Text(participant['user_email']))
+                                          FutureBuilder<DocumentSnapshot>(
+                                            future: FirebaseFirestore.instance
+                                                .collection('users')
+                                                .doc(participant['user_email'])
+                                                .get(),
+                                            builder: (
+                                              BuildContext context,
+                                              AsyncSnapshot<DocumentSnapshot>
+                                                  userSnapshot,
+                                            ) {
+                                              if (userSnapshot.hasError) {
+                                                return Text(
+                                                    'Error: ${userSnapshot.error}');
+                                              }
+
+                                              if (userSnapshot
+                                                      .connectionState ==
+                                                  ConnectionState.waiting) {
+                                                return CircularProgressIndicator();
+                                              }
+
+                                              var user = userSnapshot.data;
+                                              var profileImageUrl =
+                                                  user?['profileImageUrl'];
+
+                                              return CircleAvatar(
+                                                radius: 20,
+                                                backgroundImage: profileImageUrl !=
+                                                            null &&
+                                                        profileImageUrl
+                                                            .isNotEmpty
+                                                    ? NetworkImage(
+                                                        profileImageUrl)
+                                                    : AssetImage(
+                                                            'assets/images/defaultprofile.png')
+                                                        as ImageProvider,
+                                              );
+                                            },
+                                          ))
                                       .toList(),
                                 );
                               },
