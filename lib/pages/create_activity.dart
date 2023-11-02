@@ -82,13 +82,6 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
   }
 
   void addActivity() async {
-    if (isSubmitting) {
-      return; // If already submitting, exit early to prevent duplicate submissions
-    }
-
-    setState(() {
-      isSubmitting = true;
-    });
     try {
       CollectionReference activities =
           FirebaseFirestore.instance.collection('activities');
@@ -194,6 +187,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
         'bracket_id': bracketID,
         'team_id': teamID,
         'bracket_slot': 0,
+        'status': 'Confirmed',
       });
 
       await updateLatestBracketID(bracketID);

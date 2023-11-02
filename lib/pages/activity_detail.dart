@@ -577,17 +577,22 @@ class ActivityDetailsPage extends StatelessWidget {
                                               var profileImageUrl =
                                                   user?['profileImageUrl'];
 
-                                              return CircleAvatar(
-                                                radius: 20,
-                                                backgroundImage: profileImageUrl !=
-                                                            null &&
-                                                        profileImageUrl
-                                                            .isNotEmpty
-                                                    ? NetworkImage(
-                                                        profileImageUrl)
-                                                    : AssetImage(
-                                                            'assets/images/defaultprofile.png')
-                                                        as ImageProvider,
+                                              return Row(
+                                                children: [
+                                                  CircleAvatar(
+                                                    radius: 20,
+                                                    backgroundImage:
+                                                        profileImageUrl !=
+                                                                    null &&
+                                                                profileImageUrl
+                                                                    .isNotEmpty
+                                                            ? NetworkImage(
+                                                                profileImageUrl)
+                                                            : AssetImage(
+                                                                    'assets/images/defaultprofile.png')
+                                                                as ImageProvider,
+                                                  ),
+                                                ],
                                               );
                                             },
                                           ))

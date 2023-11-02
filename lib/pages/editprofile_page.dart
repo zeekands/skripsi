@@ -75,10 +75,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
       // Get the download URL for the image
       String downloadUrl = await snapshot.ref.getDownloadURL();
+      print(downloadUrl);
 
       // Update user data in Firestore with the download URL
       String uid = widget.user!.uid;
-      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.user!.email)
+          .update({
         'profileImageUrl':
             downloadUrl, // Assuming you have a field named 'profileImageUrl'
       });
@@ -125,7 +129,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       backgroundColor: Color.fromARGB(255, 230, 0, 0),
                     ),
                   ),
-                  // Show nothing if no image is selected
                 ],
               ),
               actions: [
@@ -133,14 +136,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   onPressed: () {
                     if (selectedImagePath != null) {
                       image = File(selectedImagePath!);
+                      print(image);
                       uploadFile();
-                      Navigator.of(context).pop(); // Close the dialog
+                      Navigator.of(context).pop();
                     }
                   },
                   child: Text("Upload"),
                   style: ButtonStyle(
-                    foregroundColor: MaterialStateProperty.all<Color>(
-                        Colors.black), // Change the color here
+                    foregroundColor:
+                        MaterialStateProperty.all<Color>(Colors.black),
                   ),
                 ),
                 TextButton(

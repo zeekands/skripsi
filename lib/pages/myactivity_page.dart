@@ -88,7 +88,7 @@ class MyActivityTab extends StatelessWidget {
     try {
       // Get a reference to the Firestore collection
       CollectionReference brackets =
-          FirebaseFirestore.instance.collection('TournamentBrackets');
+          FirebaseFirestore.instance.collection('TournamentBracket');
 
       // Query Firestore to get the total number of brackets for the provided activityId
       QuerySnapshot snapshot =
@@ -227,7 +227,7 @@ class MyActivityTab extends StatelessWidget {
                                       return Text('Error: ${snapshot.error}');
                                     } else {
                                       return Text(
-                                          'Tournament Brackets: ${snapshot.data}');
+                                          'Quota: (${snapshot.data}/${activity['activityQuota']})');
                                     }
                                   },
                                 ),
