@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'otheruserProfile_page.dart';
+
 class ActivityDetailsPage extends StatelessWidget {
   final String activityID;
 
@@ -547,7 +549,7 @@ class ActivityDetailsPage extends StatelessWidget {
                                       'No participants found for this activity.');
                                 }
 
-                                return Column(
+                                return Row(
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: participants
@@ -577,22 +579,58 @@ class ActivityDetailsPage extends StatelessWidget {
                                               var profileImageUrl =
                                                   user?['profileImageUrl'];
 
-                                              return Row(
-                                                children: [
-                                                  CircleAvatar(
-                                                    radius: 20,
-                                                    backgroundImage:
-                                                        profileImageUrl !=
-                                                                    null &&
-                                                                profileImageUrl
-                                                                    .isNotEmpty
-                                                            ? NetworkImage(
-                                                                profileImageUrl)
-                                                            : AssetImage(
-                                                                    'assets/images/defaultprofile.png')
-                                                                as ImageProvider,
-                                                  ),
-                                                ],
+                                              return GestureDetector(
+                                                onTap: () async {
+                                                  DocumentSnapshot
+                                                      userSnapshot =
+                                                      await FirebaseFirestore
+                                                          .instance
+                                                          .collection('users')
+                                                          .doc(participant[
+                                                              'user_email'])
+                                                          .get();
+
+                                                  Map<String, dynamic>
+                                                      userData =
+                                                      userSnapshot.data()
+                                                          as Map<String,
+                                                              dynamic>;
+
+                                                  // Navigate to other user's profile page
+                                                  Navigator.of(context).push(
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          OtherUserProfilePage(
+                                                        userData: userData,
+                                                        userEmail: participant[
+                                                            'user_email'],
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                                child: Column(
+                                                  children: [
+                                                    CircleAvatar(
+                                                      backgroundImage: profileImageUrl !=
+                                                                  null &&
+                                                              profileImageUrl
+                                                                  .isNotEmpty
+                                                          ? NetworkImage(
+                                                              profileImageUrl)
+                                                          : AssetImage(
+                                                                  'assets/images/defaultprofile.png')
+                                                              as ImageProvider,
+                                                      radius: 26,
+                                                    ),
+                                                    SizedBox(width: 8),
+                                                    Text(
+                                                      user!['name'],
+                                                      maxLines: 2,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ],
+                                                ),
                                               );
                                             },
                                           ))

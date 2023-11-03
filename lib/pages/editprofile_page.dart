@@ -77,14 +77,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
       String downloadUrl = await snapshot.ref.getDownloadURL();
       print(downloadUrl);
 
-      // Update user data in Firestore with the download URL
       String uid = widget.user!.uid;
       await FirebaseFirestore.instance
           .collection('users')
           .doc(widget.user!.email)
           .update({
-        'profileImageUrl':
-            downloadUrl, // Assuming you have a field named 'profileImageUrl'
+        'profileImageUrl': downloadUrl,
       });
 
       print('Image uploaded to Firebase');

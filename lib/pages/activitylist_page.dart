@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 import 'activity_detail.dart';
+import 'activity_type.dart';
 
 class ActivityListPage extends StatelessWidget {
   final DateTime selectedDate;
@@ -79,7 +82,9 @@ class ActivityListPage extends StatelessWidget {
     }
   }
 
+  Timer? _timer;
   String? userEmail = FirebaseAuth.instance.currentUser?.email;
+  TimeOfDay timevalue = TimeOfDay.now();
 
   @override
   Widget build(BuildContext context) {
@@ -91,9 +96,12 @@ class ActivityListPage extends StatelessWidget {
       body: StreamBuilder(
         stream: FirebaseFirestore.instance
             .collection('activities')
-            .where('activityDate',
+            .where('activityDateValue',
                 isGreaterThanOrEqualTo:
-                    DateFormat('dd-MM-yyyy').format(selectedDate))
+                    int.parse(DateFormat('yyyyMMdd').format(selectedDate)))
+            // .where('activityTimeValue',
+            //     isGreaterThanOrEqualTo:
+            //         int.parse(DateFormat('yyyyMMdd').format(selectedDate)))
             .snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (snapshot.hasError) {
@@ -107,6 +115,9 @@ class ActivityListPage extends StatelessWidget {
           }
           print(
               "Selected Date: ${DateFormat('dd-MM-yyyy').format(selectedDate)}");
+          int timeAsInteger = (selectedTime.hour * 100) + selectedTime.minute;
+          print("time now : ${timeAsInteger}");
+          print("time value : ${timevalue}");
           print("Activities count: ${snapshot.data!.docs.length}");
 
           var activities = snapshot.data!.docs;
@@ -117,7 +128,6 @@ class ActivityListPage extends StatelessWidget {
             );
           }
 
-          // Sort the activities by date
           activities.sort((a, b) {
             DateTime dateA = DateFormat('dd-MM-yyyy').parse(a['activityDate']);
             DateTime dateB = DateFormat('dd-MM-yyyy').parse(b['activityDate']);
@@ -292,6 +302,18 @@ class ActivityListPage extends StatelessWidget {
             },
           );
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Color.fromARGB(255, 230, 0, 0),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ActivityTypeChoosePage(),
+            ),
+          );
+        },
+        child: Icon(Icons.add),
       ),
     );
   }

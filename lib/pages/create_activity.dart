@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_places_flutter/google_places_flutter.dart';
+import 'package:google_places_flutter/model/prediction.dart';
 import 'package:intl/intl.dart';
 import 'package:sportifyapp/pages/myactivity_page.dart';
 
@@ -81,6 +83,14 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
     }
   }
 
+  String padding(angka) {
+    if (angka < 10) {
+      return "0" + angka.toString();
+    } else {
+      return angka.toString();
+    }
+  }
+
   void addActivity() async {
     try {
       CollectionReference activities =
@@ -101,13 +111,20 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
       }
 
       // Add a new document with the custom ID
+      int valueDate =
+          int.parse(DateFormat('yyyyMMdd').format(selectedDate).toString());
+      int valueTime =
+          int.parse(padding(selectedTime.hour) + padding(selectedTime.minute));
       await activities.doc(nextActivityID.toString()).set({
         'activityType': widget.activityType,
         'sportName': selectedSport,
         'activityTitle': activityTitleController.text,
         'activityLocation': activityLocationController.text,
-        'activityTime': '${selectedTime.hour}:${selectedTime.minute}',
+        'activityTime':
+            '${padding(selectedTime.hour)}:${padding(selectedTime.minute)}',
+        'activityTimeValue': valueTime,
         'activityDate': DateFormat('dd-MM-yyyy').format(selectedDate),
+        'activityDateValue': valueDate,
         'activityFee': activityFeeController.text,
         'activityDescription': activityDescriptionController.text,
         'user_email': userEmail,
@@ -319,6 +336,38 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
               decoration: InputDecoration(labelText: 'Activity Location'),
               controller: activityLocationController,
             ),
+            // GooglePlaceAutoCompleteTextField(
+            //   textEditingController: activityLocationController,
+            //   googleAPIKey: "AIzaSyB1nNrh6n-Be5ziyOBgw-PXylYpJyqC0zU",
+            //   inputDecoration: InputDecoration(),
+            //   getPlaceDetailWithLatLng: (Prediction prediction) {
+            //     // this method will return latlng with place detail
+            //     print("placeDetails" + prediction.lng.toString());
+            //   }, // this callback is called when isLatLngRequired is true
+            //   itemClick: (Prediction prediction) {
+            //     //controller.text=prediction.description;
+            //     //controller.selection = TextSelection.fromPosition(TextPosition(offset: prediction.description.length));
+            //   },
+            //   // if we want to make custom list item builder
+            //   itemBuilder: (context, index, Prediction prediction) {
+            //     return Container(
+            //       padding: EdgeInsets.all(10),
+            //       child: Row(
+            //         children: [
+            //           Icon(Icons.location_on),
+            //           SizedBox(
+            //             width: 7,
+            //           ),
+            //           Expanded(child: Text("${prediction.description ?? ""}"))
+            //         ],
+            //       ),
+            //     );
+            //   },
+            //   // if you want to add seperator between list items
+            //   seperatedBuilder: Divider(),
+            //   // want to show close icon
+            //   isCrossBtnShown: true,
+            // ),
             TextFormField(
               decoration: InputDecoration(labelText: 'Time Start'),
               style: TextStyle(fontSize: 20),

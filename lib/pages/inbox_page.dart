@@ -26,92 +26,115 @@ class _InboxPageState extends State<InboxPage>
         title: Text('Inbox'),
         backgroundColor: Color.fromARGB(255, 230, 0, 0),
         elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(50),
-          child: Container(
-            // margin: const EdgeInsets.all(4.0),
-            color: Colors.white,
-
-            child: TabBar(
-              indicatorSize: TabBarIndicatorSize.label,
-              indicator: BoxDecoration(
-                  borderRadius: BorderRadius.circular(50),
-                  color: Color.fromARGB(255, 230, 0, 0)),
-              controller: _tabController,
-              tabs: [
-                Tab(
-                  child: Container(
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(50),
-                        border: Border.all(
-                            color: Color.fromARGB(255, 230, 0, 0), width: 1)),
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: Text(
-                        "All",
-                        style: TextStyle(color: Colors.black),
-                      ),
-                    ),
-                  ),
-                ),
-                Tab(
-                  child: Container(
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(50),
-                        border: Border.all(
-                            color: Color.fromARGB(255, 230, 0, 0), width: 1)),
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: Text(
-                        "Activity",
-                        style: TextStyle(color: Colors.black),
-                      ),
-                    ),
-                  ),
-                ),
-                Tab(
-                  child: Container(
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(50),
-                        border: Border.all(
-                            color: Color.fromARGB(255, 230, 0, 0), width: 1)),
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: Text(
-                        "Team",
-                        style: TextStyle(color: Colors.black),
-                      ),
-                    ),
-                  ),
-                ),
-                Tab(
-                  child: Container(
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(50),
-                        border: Border.all(
-                            color: Color.fromARGB(255, 230, 0, 0), width: 1)),
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: Text(
-                        "Friend",
-                        style: TextStyle(color: Colors.black),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          InboxTab(category: 'All', currentUserEmail: currentUserEmail),
-          InboxTab(category: 'Activity', currentUserEmail: currentUserEmail),
-          InboxTab(category: 'Team', currentUserEmail: currentUserEmail),
-          InboxTab(category: 'Friends', currentUserEmail: currentUserEmail),
-        ],
+      body: Padding(
+        padding: EdgeInsets.only(top: 5.0),
+        child: Column(
+          children: [
+            PreferredSize(
+              preferredSize: Size.fromHeight(50),
+              child: Container(
+                color: Colors.transparent,
+                child: TabBar(
+                  indicatorSize: TabBarIndicatorSize.label,
+                  indicator: BoxDecoration(
+                    borderRadius: BorderRadius.circular(50),
+                    color: Color.fromARGB(255, 230, 0, 0),
+                  ),
+                  controller: _tabController,
+                  tabs: [
+                    Tab(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(50),
+                          border: Border.all(
+                            color: Color.fromARGB(255, 230, 0, 0),
+                            width: 1,
+                          ),
+                        ),
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: Text(
+                            "All",
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Tab(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(50),
+                          border: Border.all(
+                            color: Color.fromARGB(255, 230, 0, 0),
+                            width: 1,
+                          ),
+                        ),
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: Text(
+                            "Activity",
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Tab(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(50),
+                          border: Border.all(
+                            color: Color.fromARGB(255, 230, 0, 0),
+                            width: 1,
+                          ),
+                        ),
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: Text(
+                            "Team",
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Tab(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(50),
+                          border: Border.all(
+                            color: Color.fromARGB(255, 230, 0, 0),
+                            width: 1,
+                          ),
+                        ),
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: Text(
+                            "Friend",
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  InboxTab(category: 'All', currentUserEmail: currentUserEmail),
+                  InboxTab(
+                      category: 'Activity', currentUserEmail: currentUserEmail),
+                  InboxTab(
+                      category: 'Team', currentUserEmail: currentUserEmail),
+                  InboxTab(
+                      category: 'Friends', currentUserEmail: currentUserEmail),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -223,82 +246,114 @@ class InboxTab extends StatelessWidget {
             print(
                 'Team Name: $teamName, Sport: $teamSport, Creator Email: $teamCreatorEmail');
 
-            showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: Center(child: Text('Join Request')),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // Fetch user data
+            FirebaseFirestore.instance
+                .collection('users')
+                .doc(requestEmail) // Use requestEmail to get user data
+                .get()
+                .then((DocumentSnapshot userSnapshot) {
+              if (userSnapshot.exists) {
+                Map<String, dynamic> userData =
+                    userSnapshot.data() as Map<String, dynamic>;
+                String profileImageUrl = userData['profileImageUrl'];
+
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: Center(child: Text('Join Request')),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          CircleAvatar(),
-                          Text(
-                            ">>",
-                            style: TextStyle(fontSize: 24),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              CircleAvatar(
+                                backgroundImage: profileImageUrl != null &&
+                                        profileImageUrl.isNotEmpty
+                                    ? NetworkImage(profileImageUrl)
+                                    : AssetImage(
+                                            'assets/images/defaultprofile.png')
+                                        as ImageProvider,
+                                radius: 26,
+                              ),
+                              Text(
+                                ">>",
+                                style: TextStyle(fontSize: 24),
+                              ),
+                              CircleAvatar(
+                                backgroundImage: teamData['teamImageUrl'] !=
+                                            null &&
+                                        teamData['teamImageUrl'].isNotEmpty
+                                    ? NetworkImage(teamData['teamImageUrl'])
+                                    : AssetImage(
+                                            'assets/images/defaultprofile.png')
+                                        as ImageProvider,
+                                radius: 26,
+                              ),
+                            ],
                           ),
-                          CircleAvatar(),
+                          SizedBox(height: 8),
+                          Container(
+                            child: Text(
+                              '$requestEmail has requested to join $teamName',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         ],
                       ),
-                      SizedBox(height: 8),
-                      Container(
-                        child: Text(
-                          '$requestEmail has requested to join $teamName',
-                          textAlign: TextAlign.center,
+                      actions: <Widget>[
+                        TextButton(
+                          child: Text('Accept'),
+                          onPressed: () {
+                            FirebaseFirestore.instance
+                                .collection('team_members')
+                                .doc(teamMemberId)
+                                .update({'status': 'Confirmed'}).then((value) {
+                              print('Request accepted');
+                              FirebaseFirestore.instance
+                                  .collection('notifications')
+                                  .doc(notificationId)
+                                  .delete();
+                            }).catchError((error) {
+                              print('Error accepting request: $error');
+                            });
+                            Navigator.of(context).pop(); // Close the dialog
+                          },
                         ),
-                      ),
-                    ],
-                  ),
-                  actions: <Widget>[
-                    TextButton(
-                      child: Text('Accept'),
-                      onPressed: () {
-                        FirebaseFirestore.instance
-                            .collection('team_members')
-                            .doc(teamMemberId)
-                            .update({'status': 'Confirmed'}).then((value) {
-                          print('Request accepted');
-                          FirebaseFirestore.instance
-                              .collection('notifications')
-                              .doc(notificationId)
-                              .delete();
-                        }).catchError((error) {
-                          print('Error accepting request: $error');
-                        });
-                        Navigator.of(context).pop(); // Close the dialog
-                      },
-                    ),
-                    TextButton(
-                      child: Text('Decline'),
-                      onPressed: () {
-                        FirebaseFirestore.instance
-                            .collection('team_members')
-                            .doc(teamMemberId)
-                            .delete()
-                            .then((value) {
-                          print('Request declined');
-                          FirebaseFirestore.instance
-                              .collection('notifications')
-                              .doc(notificationId)
-                              .delete();
-                        }).catchError((error) {
-                          print('Error declining request: $error');
-                        });
-                        Navigator.of(context).pop(); // Close the dialog
-                      },
-                    ),
-                    TextButton(
-                      child: Text('Close'),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                  ],
+                        TextButton(
+                          child: Text('Decline'),
+                          onPressed: () {
+                            FirebaseFirestore.instance
+                                .collection('team_members')
+                                .doc(teamMemberId)
+                                .delete()
+                                .then((value) {
+                              print('Request declined');
+                              FirebaseFirestore.instance
+                                  .collection('notifications')
+                                  .doc(notificationId)
+                                  .delete();
+                            }).catchError((error) {
+                              print('Error declining request: $error');
+                            });
+                            Navigator.of(context).pop(); // Close the dialog
+                          },
+                        ),
+                        TextButton(
+                          child: Text('Close'),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                      ],
+                    );
+                  },
                 );
-              },
-            );
+              } else {
+                print('User Document does not exist');
+              }
+            });
           } else {
             print('Team Document does not exist');
           }
@@ -343,86 +398,100 @@ class InboxTab extends StatelessWidget {
             print(
                 'Activity Title: $activityTitle, Sport: $activitySport, Creator Email: $activityCreatorEmail');
 
-            showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: Center(child: Text('Join Request')),
-                  content: Column(
-                    mainAxisSize: MainAxisSize
-                        .min, // Make the column take the minimum vertical space needed
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // Fetch user data
+            FirebaseFirestore.instance
+                .collection('users')
+                .doc(requestEmail) // Use requestEmail to get user data
+                .get()
+                .then((DocumentSnapshot userSnapshot) {
+              if (userSnapshot.exists) {
+                Map<String, dynamic> userData =
+                    userSnapshot.data() as Map<String, dynamic>;
+                String profileImageUrl = userData['profileImageUrl'];
+
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: Center(child: Text('Join Request')),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          CircleAvatar(),
-                          Text(
-                            ">>",
-                            style: TextStyle(
-                                fontSize: 24), // Adjust the font size as needed
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              CircleAvatar(
+                                backgroundImage: profileImageUrl != null &&
+                                        profileImageUrl.isNotEmpty
+                                    ? NetworkImage(profileImageUrl)
+                                    : AssetImage(
+                                            'assets/images/defaultprofile.png')
+                                        as ImageProvider,
+                                radius: 26,
+                              ),
+                            ],
                           ),
-                          CircleAvatar(),
+                          SizedBox(height: 8),
+                          Container(
+                            child: Text(
+                              '$requestEmail has requested to join your activity $activityTitle',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         ],
                       ),
-                      SizedBox(
-                          height:
-                              8), // Add a small vertical space between the Row and the Text
-                      Container(
-                        child: Text(
-                          '$requestEmail has requested to join your activity $activityTitle',
-                          textAlign: TextAlign.center, // Center the text
+                      actions: <Widget>[
+                        TextButton(
+                          child: Text('Accept'),
+                          onPressed: () {
+                            FirebaseFirestore.instance
+                                .collection('participants')
+                                .doc(participantId)
+                                .update({'status': 'Confirmed'}).then((value) {
+                              print('Request accepted');
+                              FirebaseFirestore.instance
+                                  .collection('notifications')
+                                  .doc(notificationId)
+                                  .delete();
+                            }).catchError((error) {
+                              print('Error accepting request: $error');
+                            });
+                            Navigator.of(context).pop(); // Close the dialog
+                          },
                         ),
-                      ),
-                    ],
-                  ),
-                  actions: <Widget>[
-                    TextButton(
-                      child: Text('Accept'),
-                      onPressed: () {
-                        FirebaseFirestore.instance
-                            .collection('participants')
-                            .doc(participantId)
-                            .update({'status': 'Confirmed'}).then((value) {
-                          print('Request accepted');
-                          FirebaseFirestore.instance
-                              .collection('notifications')
-                              .doc(notificationId)
-                              .delete();
-                        }).catchError((error) {
-                          print('Error accepting request: $error');
-                        });
-                        Navigator.of(context).pop(); // Close the dialog
-                      },
-                    ),
-                    TextButton(
-                      child: Text('Decline'),
-                      onPressed: () {
-                        FirebaseFirestore.instance
-                            .collection('participants')
-                            .doc(participantId)
-                            .delete()
-                            .then((value) {
-                          print('Request declined');
-                          FirebaseFirestore.instance
-                              .collection('notifications')
-                              .doc(notificationId)
-                              .delete();
-                        }).catchError((error) {
-                          print('Error declining request: $error');
-                        });
-                        Navigator.of(context).pop(); // Close the dialog
-                      },
-                    ),
-                    TextButton(
-                      child: Text('Close'),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                  ],
+                        TextButton(
+                          child: Text('Decline'),
+                          onPressed: () {
+                            FirebaseFirestore.instance
+                                .collection('participants')
+                                .doc(participantId)
+                                .delete()
+                                .then((value) {
+                              print('Request declined');
+                              FirebaseFirestore.instance
+                                  .collection('notifications')
+                                  .doc(notificationId)
+                                  .delete();
+                            }).catchError((error) {
+                              print('Error declining request: $error');
+                            });
+                            Navigator.of(context).pop(); // Close the dialog
+                          },
+                        ),
+                        TextButton(
+                          child: Text('Close'),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                      ],
+                    );
+                  },
                 );
-              },
-            );
+              } else {
+                print('User Document does not exist');
+              }
+            });
           } else {
             print('Activity Document does not exist');
           }

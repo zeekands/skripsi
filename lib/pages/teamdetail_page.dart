@@ -3,18 +3,24 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'editteam_page.dart';
+import 'manageteam_page.dart';
+import 'otheruserProfile_page.dart';
 
 class TeamDetailPage extends StatefulWidget {
   final String teamName;
   final int teamId;
   final String teamSport;
   final String teamCreator;
+  final String teamImageUrl;
+  final String teamDes;
 
   TeamDetailPage({
     required this.teamName,
     required this.teamId,
     required this.teamSport,
     required this.teamCreator,
+    required this.teamImageUrl,
+    required this.teamDes,
   });
 
   @override
@@ -130,6 +136,18 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
           teamId: widget.teamId,
           teamSport: widget.teamSport,
           teamCreator: widget.teamCreator,
+          teamDescription: widget.teamDes,
+          teamImageUrl: widget.teamImageUrl,
+        ),
+      ),
+    );
+  }
+
+  void ManageTeamMember() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ManageTeamMemberPage(
+          teamId: widget.teamId,
         ),
       ),
     );
@@ -138,7 +156,7 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
   @override
   Widget build(BuildContext context) {
     var userEmail = FirebaseAuth.instance.currentUser?.email;
-
+    String? teamUrl = widget.teamImageUrl;
     return Scaffold(
       appBar: AppBar(
         title: Text('Team Details'),
@@ -146,9 +164,23 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
         actions: [
           if (userEmail ==
               widget.teamCreator) // Check if current user is team creator
-            IconButton(
-              icon: Icon(Icons.settings), // Add settings icon
-              onPressed: editTeam,
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'edit') {
+                  editTeam();
+                } else if (value == 'manageMembers') {
+                  ManageTeamMember();
+                }
+              },
+              itemBuilder: (BuildContext context) {
+                return {'edit', 'manageMembers'}.map((String choice) {
+                  return PopupMenuItem<String>(
+                    value: choice,
+                    child:
+                        Text(choice == 'edit' ? 'Edit Team' : 'Manage Members'),
+                  );
+                }).toList();
+              },
             ),
         ],
       ),
@@ -157,6 +189,15 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: CircleAvatar(
+                radius: 64,
+                backgroundImage: teamUrl != null && teamUrl.isNotEmpty
+                    ? NetworkImage(teamUrl)
+                    : AssetImage('assets/images/defaultTeam.png')
+                        as ImageProvider,
+              ),
+            ),
             Text(
               'Team Name: ${widget.teamName}',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -173,6 +214,7 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
             ),
             SizedBox(height: 10),
             Container(
+              // margin: const EdgeInsets.only(right: 20.0),
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('team_members')
@@ -196,18 +238,92 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
                   }
 
                   return Expanded(
-                    child: ListView(
-                      children: teamMembers.map((teamMember) {
-                        String userEmail = teamMember['user_email'];
-                        return ListTile(
-                          title: Text(userEmail),
+                    child: ListView.builder(
+                      itemCount: (teamMembers.length / 2).ceil(),
+                      itemBuilder: (context, index) {
+                        int startIndex = index * 2;
+                        int endIndex = startIndex + 2;
+                        if (endIndex > teamMembers.length) {
+                          endIndex = teamMembers.length;
+                        }
+
+                        return Row(
+                          children: teamMembers
+                              .sublist(startIndex, endIndex)
+                              .map((teamMember) {
+                            String userEmail = teamMember['user_email'];
+                            return FutureBuilder<DocumentSnapshot>(
+                              future: FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(userEmail)
+                                  .get(),
+                              builder: (BuildContext context,
+                                  AsyncSnapshot<DocumentSnapshot>
+                                      userSnapshot) {
+                                if (userSnapshot.hasError) {
+                                  return Text('Error: ${userSnapshot.error}');
+                                }
+
+                                if (userSnapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return CircularProgressIndicator();
+                                }
+
+                                if (!userSnapshot.hasData) {
+                                  return SizedBox(); // Handle empty data
+                                }
+
+                                var userData = userSnapshot.data!.data()
+                                    as Map<String, dynamic>;
+
+                                return GestureDetector(
+                                  onTap: () {
+                                    // Navigate to other user's profile page
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            OtherUserProfilePage(
+                                          userData: userData,
+                                          userEmail: userEmail,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: Column(
+                                    children: [
+                                      CircleAvatar(
+                                        backgroundImage: userData[
+                                                        'profileImageUrl'] !=
+                                                    null &&
+                                                userData['profileImageUrl']
+                                                    .isNotEmpty
+                                            ? NetworkImage(
+                                                userData['profileImageUrl'])
+                                            : AssetImage(
+                                                    'assets/images/defaultprofile.png')
+                                                as ImageProvider,
+                                        radius: 26,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        userData['name'],
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            );
+                          }).toList(),
                         );
-                      }).toList(),
+                      },
                     ),
                   );
                 },
               ),
             ),
+
             // Display "Request to Join" button if the user is not a member
             if (!isCurrentUserMember)
               Expanded(

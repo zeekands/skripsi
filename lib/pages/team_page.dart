@@ -265,6 +265,7 @@ class _MyTeamTabState extends State<MyTeamTab> {
                         'team_description': description,
                         'team_sport': selectedCategory,
                         'team_creator_email': userEmail,
+                        'teamImageUrl': "",
                       });
 
                       // Update the latest ID in the collection
@@ -361,21 +362,52 @@ class _MyTeamTabState extends State<MyTeamTab> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => TeamDetailPage(
-                                  teamName: teamData['team_name'],
-                                  teamId: teamId,
-                                  teamSport: teamData['team_sport'],
-                                  teamCreator: teamData['team_creator_email']
-                                  // Add more details as needed
-                                  ),
+                                teamName: teamData['team_name'],
+                                teamId: teamId,
+                                teamSport: teamData['team_sport'],
+                                teamCreator: teamData['team_creator_email'],
+                                teamImageUrl: teamData!['teamImageUrl'],
+                                teamDes: teamData!['team_description'],
+                                // Add more details as needed
+                              ),
                             ),
                           );
                         },
-                        child: ListTile(
-                          title: Text('Team Name: ${teamData['team_name']}'),
-                          subtitle: Text('Team ID: $teamId'),
-                          trailing:
-                              Text('Team Sport: ${teamData['team_sport']}'),
-                          // Add more details as needed
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 60, // Adjust the size as needed
+                              height: 60, // Adjust the size as needed
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                image: DecorationImage(
+                                  fit: BoxFit.cover,
+                                  image: teamData!['teamImageUrl'] != null &&
+                                          teamData!['teamImageUrl'].isNotEmpty
+                                      ? NetworkImage(teamData!['teamImageUrl'])
+                                      : AssetImage(
+                                              'assets/images/defaultTeam.png')
+                                          as ImageProvider,
+                                ),
+                              ),
+                            ),
+                            SizedBox(
+                                width:
+                                    16), // Add some space between the containers
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${teamData['team_name']}',
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                Text('${teamData['team_sport']}',
+                                    style: TextStyle(fontSize: 16)),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -499,17 +531,44 @@ class TabContent extends StatelessWidget {
                           teamSport: teamData?['team_sport'] ??
                               'Sport Name Unavailable',
                           teamCreator: teamData!['team_creator_email'],
+                          teamImageUrl: teamData!['teamImageUrl'],
+                          teamDes: teamData!['team_description'],
                         ),
                       ),
                     );
                   },
-                  child: ListTile(
-                    title: Text(
-                        'Team Name: ${teamName ?? 'Team Name Unavailable'}'),
-                    subtitle: Text('Team ID: $teamId'),
-                    trailing: Text(
-                        'Team Sport: ${teamData?['team_sport'] ?? 'Sport Name Unavailable'}'),
-                    // Add more details as needed
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 60, // Adjust the size as needed
+                        height: 60, // Adjust the size as needed
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          image: DecorationImage(
+                            fit: BoxFit.cover,
+                            image: teamData!['teamImageUrl'] != null &&
+                                    teamData!['teamImageUrl'].isNotEmpty
+                                ? NetworkImage(teamData!['teamImageUrl'])
+                                : AssetImage('assets/images/defaultTeam.png')
+                                    as ImageProvider,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                          width: 16), // Add some space between the containers
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${teamData['team_name']}',
+                            style: TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          Text('${teamData['team_sport']}',
+                              style: TextStyle(fontSize: 16)),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               );

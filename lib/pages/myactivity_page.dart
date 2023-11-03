@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'activity_detail.dart';
 import 'activity_type.dart';
 
@@ -107,12 +108,19 @@ class MyActivityTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     String? userEmail = FirebaseAuth.instance.currentUser?.email;
+    DateTime selectedDate = DateTime.now();
+    TimeOfDay selectedTime = TimeOfDay.now();
 
     return Scaffold(
       body: StreamBuilder(
         stream: FirebaseFirestore.instance
             .collection('activities')
-            .where('user_email', isEqualTo: userEmail)
+            .where('activityDateValue',
+                isGreaterThanOrEqualTo:
+                    int.parse(DateFormat('yyyyMMdd').format(selectedDate)))
+            // .where('activityTimeValue',
+            //     isGreaterThanOrEqualTo:
+            //         int.parse(DateFormat('yyyyMMdd').format(selectedDate)))
             .snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (snapshot.hasError) {
@@ -121,125 +129,193 @@ class MyActivityTab extends StatelessWidget {
 
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(
-              child: CircularProgressIndicator(), // Loading indicator
+              child: CircularProgressIndicator(),
             );
           }
+          print(
+              "Selected Date: ${DateFormat('dd-MM-yyyy').format(selectedDate)}");
+          int timeAsInteger = (selectedTime.hour * 100) + selectedTime.minute;
+          print("time now : ${timeAsInteger}");
+          print("Activities count: ${snapshot.data!.docs.length}");
 
           var activities = snapshot.data!.docs;
 
+          if (activities.isEmpty) {
+            return Center(
+              child: Text('No activities for now...'),
+            );
+          }
+
+          activities.sort((a, b) {
+            DateTime dateA = DateFormat('dd-MM-yyyy').parse(a['activityDate']);
+            DateTime dateB = DateFormat('dd-MM-yyyy').parse(b['activityDate']);
+
+            return dateA.compareTo(dateB);
+          });
+
+          // Group the activities by date
+          Map<String, List<DocumentSnapshot>> activitiesByDate = {};
+
+          for (var activity in activities) {
+            String date = activity['activityDate'];
+            if (!activitiesByDate.containsKey(date)) {
+              activitiesByDate[date] = [];
+            }
+            activitiesByDate[date]!.add(activity);
+          }
+
           return ListView.builder(
-            itemCount: activities.length,
+            itemCount: activitiesByDate.length,
             itemBuilder: (BuildContext context, int index) {
-              var activity = activities[index];
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ActivityDetailsPage(activity.id),
+              String date = activitiesByDate.keys.elementAt(index);
+              List<DocumentSnapshot> activitiesForDate =
+                  activitiesByDate[date]!;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      date,
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                  );
-                },
-                child: Card(
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 60, // Set a fixed width for the time container
-                        padding: EdgeInsets.all(8.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            Column(
-                              children: [
-                                FutureBuilder<String>(
-                                  future: getSportImage(activity['sportName']),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.connectionState ==
-                                        ConnectionState.waiting) {
-                                      return CircularProgressIndicator();
-                                    } else if (snapshot.hasError) {
-                                      return Text('Error: ${snapshot.error}');
-                                    } else {
-                                      return Image.network(
-                                        snapshot.data!,
-                                        width: 40,
-                                        height: 40,
-                                      );
-                                    }
-                                  },
+                  ),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    itemCount: activitiesForDate.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      var activity = activitiesForDate[index];
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ActivityDetailsPage(activity.id),
+                            ),
+                          );
+                        },
+                        child: Card(
+                          child: Row(
+                            children: [
+                              Container(
+                                width:
+                                    60, // Set a fixed width for the time container
+                                padding: EdgeInsets.all(8.0),
+                                child: Column(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    Column(
+                                      children: [
+                                        FutureBuilder<String>(
+                                          future: getSportImage(
+                                              activity['sportName']),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.connectionState ==
+                                                ConnectionState.waiting) {
+                                              return CircularProgressIndicator();
+                                            } else if (snapshot.hasError) {
+                                              return Text(
+                                                  'Error: ${snapshot.error}');
+                                            } else {
+                                              return Image.network(
+                                                snapshot.data!,
+                                                width: 40,
+                                                height: 40,
+                                              );
+                                            }
+                                          },
+                                        ),
+                                        SizedBox(
+                                          height: 10,
+                                        ),
+                                        Text(
+                                          activity['activityTime'],
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
-                                SizedBox(
-                                  height: 10,
-                                ),
-                                Text(
-                                  activity['activityTime'],
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
+                              ),
+                              Expanded(
+                                child: Container(
+                                  padding: EdgeInsets.all(8.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(activity['activityTitle'],
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                          )),
+                                      Text(
+                                          'Location: ${activity['activityLocation']}'),
+                                      Text('Fee: ${activity['activityFee']}'),
+                                      if (activity['activityType'] ==
+                                              'Normal Activity' ||
+                                          activity['activityType'] ==
+                                              'Sparring')
+                                        Text(
+                                            'Duration in hour: ${activity['activityDuration']}'),
+                                      if (activity['activityType'] ==
+                                          'Normal Activity')
+                                        FutureBuilder<int>(
+                                          future:
+                                              getTotalParticipants(activity.id),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.connectionState ==
+                                                ConnectionState.waiting) {
+                                              return CircularProgressIndicator();
+                                            } else if (snapshot.hasError) {
+                                              return Text(
+                                                  'Error: ${snapshot.error}');
+                                            } else {
+                                              return Text(
+                                                  'Quota: (${snapshot.data}/${activity['activityQuota']})');
+                                            }
+                                          },
+                                        ),
+                                      if (activity['activityType'] ==
+                                              'Tournament' ||
+                                          activity['activityType'] ==
+                                              'Sparring')
+                                        FutureBuilder<int>(
+                                          future: getTotalTournamentBracket(
+                                              activity.id),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.connectionState ==
+                                                ConnectionState.waiting) {
+                                              return CircularProgressIndicator();
+                                            } else if (snapshot.hasError) {
+                                              return Text(
+                                                  'Error: ${snapshot.error}');
+                                            } else {
+                                              return Text(
+                                                  'Quota: (${snapshot.data}/${activity['activityQuota']})');
+                                            }
+                                          },
+                                        ),
+                                      Text(
+                                          'Activity Type: ${activity['activityType']}'),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: Container(
-                          padding: EdgeInsets.all(8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(activity['activityTitle'],
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  )),
-                              Text('Location: ${activity['activityLocation']}'),
-                              Text('Fee: ${activity['activityFee']}'),
-                              if (activity['activityType'] == 'Normal Activity')
-                                Text(
-                                    'Duration in hour: ${activity['activityDuration']}'),
-                              if (activity['activityType'] == 'Normal Activity')
-                                FutureBuilder<int>(
-                                  future: getTotalParticipants(activity.id),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.connectionState ==
-                                        ConnectionState.waiting) {
-                                      return CircularProgressIndicator();
-                                    } else if (snapshot.hasError) {
-                                      return Text('Error: ${snapshot.error}');
-                                    } else {
-                                      return Text(
-                                          'Quota: (${snapshot.data}/${activity['activityQuota']})');
-                                    }
-                                  },
-                                ),
-                              if (activity['activityType'] == 'Tournament' ||
-                                  activity['activityType'] == 'Sparring')
-                                FutureBuilder<int>(
-                                  future:
-                                      getTotalTournamentBracket(activity.id),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.connectionState ==
-                                        ConnectionState.waiting) {
-                                      return CircularProgressIndicator();
-                                    } else if (snapshot.hasError) {
-                                      return Text('Error: ${snapshot.error}');
-                                    } else {
-                                      return Text(
-                                          'Quota: (${snapshot.data}/${activity['activityQuota']})');
-                                    }
-                                  },
-                                ),
-                              Text(
-                                  'Activity Type: ${activity['activityType']}'),
+                              ),
                             ],
                           ),
                         ),
-                      ),
-                    ],
+                      );
+                    },
                   ),
-                ),
+                ],
               );
             },
           );
