@@ -115,9 +115,10 @@ class MyActivityTab extends StatelessWidget {
       body: StreamBuilder(
         stream: FirebaseFirestore.instance
             .collection('activities')
-            .where('activityDateValue',
-                isGreaterThanOrEqualTo:
-                    int.parse(DateFormat('yyyyMMdd').format(selectedDate)))
+            // .where('activityDateValue',
+            //     isGreaterThanOrEqualTo:
+            //         int.parse(DateFormat('yyyyMMdd').format(selectedDate)))
+            .where('user_email', isEqualTo: userEmail)
             // .where('activityTimeValue',
             //     isGreaterThanOrEqualTo:
             //         int.parse(DateFormat('yyyyMMdd').format(selectedDate)))
@@ -132,11 +133,11 @@ class MyActivityTab extends StatelessWidget {
               child: CircularProgressIndicator(),
             );
           }
-          print(
-              "Selected Date: ${DateFormat('dd-MM-yyyy').format(selectedDate)}");
-          int timeAsInteger = (selectedTime.hour * 100) + selectedTime.minute;
-          print("time now : ${timeAsInteger}");
-          print("Activities count: ${snapshot.data!.docs.length}");
+          // print(
+          //     "Selected Date: ${DateFormat('dd-MM-yyyy').format(selectedDate)}");
+          // int timeAsInteger = (selectedTime.hour * 100) + selectedTime.minute;
+          // print("time now : ${timeAsInteger}");
+          // print("Activities count: ${snapshot.data!.docs.length}");
 
           var activities = snapshot.data!.docs;
 
@@ -338,10 +339,213 @@ class MyActivityTab extends StatelessWidget {
 }
 
 class ActivityHistoryTab extends StatelessWidget {
+  String? userEmail = FirebaseAuth.instance.currentUser!.email;
+  Future<int> getTotalParticipants(String activityId) async {
+    try {
+      // Get a reference to the Firestore collection
+      CollectionReference participants =
+          FirebaseFirestore.instance.collection('participants');
+
+      // Query Firestore to get the number of participants for the provided activity ID
+      QuerySnapshot snapshot =
+          await participants.where('activity_id', isEqualTo: activityId).get();
+
+      return snapshot.docs.length;
+    } catch (e) {
+      // Handle errors here
+      print('Error fetching total participants: $e');
+      return 0; // Return 0 in case of an error
+    }
+  }
+
+  Future<int> getTotalTournamentBracket(String activityId) async {
+    try {
+      // Get a reference to the Firestore collection
+      CollectionReference brackets =
+          FirebaseFirestore.instance.collection('TournamentBracket');
+
+      // Query Firestore to get the total number of brackets for the provided activityId
+      QuerySnapshot snapshot =
+          await brackets.where('activity_id', isEqualTo: activityId).get();
+
+      // Return the total number of brackets
+      return snapshot.size;
+    } catch (e) {
+      // Handle errors here
+      print('Error fetching total tournament brackets: $e');
+      // Return 0 in case of an error
+      return 0;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Text('Activity History Content'),
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('participants')
+          .where('user_email', isEqualTo: userEmail)
+          .snapshots(),
+      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        List<String> activityIds = snapshot.data!.docs
+            .map((doc) => doc['activity_id'] as String)
+            .toList();
+
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('activities')
+              .where('activityStatus', isEqualTo: 'Completed')
+              .where(FieldPath.documentId, whereIn: activityIds)
+              .snapshots(),
+          builder:
+              (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+            if (snapshot.hasError) {
+              return Text('Error: ${snapshot.error}');
+            }
+
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+
+            var activities = snapshot.data!.docs;
+
+            if (activities.isEmpty) {
+              return Center(
+                child: Text('No completed activities for now...'),
+              );
+            }
+
+            return ListView.builder(
+              itemCount: activities.length,
+              itemBuilder: (BuildContext context, int index) {
+                var activity = activities[index];
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ActivityDetailsPage(activity.id),
+                      ),
+                    );
+                  },
+                  child: Card(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 60,
+                          padding: EdgeInsets.all(8.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Column(
+                                children: [
+                                  FutureBuilder<String>(
+                                    future:
+                                        getSportImage(activity['sportName']),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return CircularProgressIndicator();
+                                      } else if (snapshot.hasError) {
+                                        return Text('Error: ${snapshot.error}');
+                                      } else {
+                                        return Image.network(
+                                          snapshot.data!,
+                                          width: 40,
+                                          height: 40,
+                                        );
+                                      }
+                                    },
+                                  ),
+                                  SizedBox(
+                                    height: 10,
+                                  ),
+                                  Text(
+                                    activity['activityTime'],
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Container(
+                            padding: EdgeInsets.all(8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(activity['activityTitle'],
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    )),
+                                Text(
+                                    'Location: ${activity['activityLocation']}'),
+                                Text('Fee: ${activity['activityFee']}'),
+                                if (activity['activityType'] ==
+                                        'Normal Activity' ||
+                                    activity['activityType'] == 'Sparring')
+                                  Text(
+                                      'Duration in hour: ${activity['activityDuration']}'),
+                                if (activity['activityType'] ==
+                                    'Normal Activity')
+                                  FutureBuilder<int>(
+                                    future: getTotalParticipants(activity.id),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return CircularProgressIndicator();
+                                      } else if (snapshot.hasError) {
+                                        return Text('Error: ${snapshot.error}');
+                                      } else {
+                                        return Text(
+                                            'Quota: (${snapshot.data}/${activity['activityQuota']})');
+                                      }
+                                    },
+                                  ),
+                                if (activity['activityType'] == 'Tournament' ||
+                                    activity['activityType'] == 'Sparring')
+                                  FutureBuilder<int>(
+                                    future:
+                                        getTotalTournamentBracket(activity.id),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return CircularProgressIndicator();
+                                      } else if (snapshot.hasError) {
+                                        return Text('Error: ${snapshot.error}');
+                                      } else {
+                                        return Text(
+                                            'Quota: (${snapshot.data}/${activity['activityQuota']})');
+                                      }
+                                    },
+                                  ),
+                                Text(
+                                    'Activity Type: ${activity['activityType']}'),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 }

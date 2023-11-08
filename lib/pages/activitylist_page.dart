@@ -69,8 +69,10 @@ class ActivityListPage extends StatelessWidget {
           FirebaseFirestore.instance.collection('TournamentBracket');
 
       // Query Firestore to get the total number of brackets for the provided activityId
-      QuerySnapshot snapshot =
-          await brackets.where('activity_id', isEqualTo: activityId).get();
+      QuerySnapshot snapshot = await brackets
+          .where('activity_id', isEqualTo: activityId)
+          .where('status', isEqualTo: 'Confirmed')
+          .get();
 
       // Return the total number of brackets
       return snapshot.size;
@@ -99,9 +101,7 @@ class ActivityListPage extends StatelessWidget {
             .where('activityDateValue',
                 isGreaterThanOrEqualTo:
                     int.parse(DateFormat('yyyyMMdd').format(selectedDate)))
-            // .where('activityTimeValue',
-            //     isGreaterThanOrEqualTo:
-            //         int.parse(DateFormat('yyyyMMdd').format(selectedDate)))
+            .where('activityStatus', isEqualTo: 'Waiting')
             .snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (snapshot.hasError) {

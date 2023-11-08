@@ -52,8 +52,20 @@ class OtherUserProfilePage extends StatelessWidget {
                     style: TextStyle(fontSize: 18),
                   ),
                   SizedBox(height: 5),
-
-                  // Add commendation images here if needed
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(horizontal: 3.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        commendationImage('skillfull.png', 'Skillfull', 0),
+                        commendationImage('friendly.png', 'Positive', 0),
+                        commendationImage('teamplayer.png', 'Teamwork', 0),
+                        commendationImage(
+                            'sportmanship.png', 'Sportsmanship', 0),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -160,4 +172,37 @@ class OtherUserProfilePage extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget commendationImage(String imageName, String name, int number) {
+  return Column(
+    children: [
+      Image.asset(
+        'assets/images/$imageName',
+        width: 70,
+        height: 70,
+        fit: BoxFit.cover,
+        errorBuilder:
+            (BuildContext context, Object error, StackTrace? stackTrace) {
+          return Container(
+            width: 80,
+            height: 80,
+            color: Colors.red,
+            margin: EdgeInsets.all(5),
+          );
+        },
+      ),
+      Row(
+        children: [
+          Text('$number'),
+          Image.asset(
+            'assets/images/star.png',
+            width: 20,
+            height: 20,
+          ),
+        ],
+      ),
+      Text(name),
+    ],
+  );
 }

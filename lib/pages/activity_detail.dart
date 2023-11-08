@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'commendation_page.dart';
 import 'otheruserProfile_page.dart';
 
 class ActivityDetailsPage extends StatelessWidget {
@@ -345,6 +346,82 @@ class ActivityDetailsPage extends StatelessWidget {
     }
   }
 
+  Future<bool> isTeamParticipant(String activityID, String userEmail) async {
+    try {
+      // Check if the user has a team in team_members
+      QuerySnapshot teamSnapshot = await FirebaseFirestore.instance
+          .collection('team_members')
+          .where('user_email', isEqualTo: userEmail)
+          .where('status', isEqualTo: 'Confirmed')
+          .get();
+
+      if (teamSnapshot.docs.isNotEmpty) {
+        for (var doc in teamSnapshot.docs) {
+          int teamID = doc['team_id'];
+          String strTeamID = teamID.toString();
+          print(teamID);
+
+          // Check if the team is registered in Tournament Bracket
+          QuerySnapshot bracketSnapshot = await FirebaseFirestore.instance
+              .collection('TournamentBracket')
+              .where('team_id', isEqualTo: strTeamID)
+              .where('activity_id', isEqualTo: activityID)
+              .where('status', isEqualTo: 'Confirmed')
+              .get();
+
+          if (bracketSnapshot.docs.isNotEmpty) {
+            print('User\'s team is participating');
+            return true; // User's team is participating
+          }
+        }
+      }
+      print('User doesn\'t have a team or team is not participating');
+      return false; // User doesn't have a team or team is not participating
+    } catch (e) {
+      print('Error checking team participant status: $e');
+      return false;
+    }
+  }
+
+  Future<bool> isActivityFull(
+      Future<int> participantCount, int activityQuota) async {
+    int partiCount = await participantCount;
+    return partiCount <= activityQuota;
+  }
+
+  Future<int> getParticipantCount(String activityID) async {
+    try {
+      // Get a reference to the Firestore collection
+      CollectionReference participants =
+          FirebaseFirestore.instance.collection('participants');
+
+      // Query Firestore to get the number of participants for the provided activity ID
+      QuerySnapshot snapshot =
+          await participants.where('activity_id', isEqualTo: activityID).get();
+
+      return snapshot.docs.length;
+    } catch (e) {
+      // Handle errors here
+      print('Error fetching total participants: $e');
+      return 0; // Return 0 in case of an error
+    }
+  }
+
+  Future<void> updateActivityStatus(String newStatus, String activityID) async {
+    try {
+      // Get a reference to the activity document
+      CollectionReference activities =
+          FirebaseFirestore.instance.collection('activities');
+      DocumentReference activityRef = activities.doc(activityID.toString());
+
+      // Update the activity status
+      await activityRef.update({'activityStatus': newStatus});
+    } catch (e) {
+      // Handle any errors that may occur during the update
+      print('Error updating activity status: $e');
+    }
+  }
+
   String? userEmail = FirebaseAuth.instance.currentUser?.email;
 
   @override
@@ -483,6 +560,8 @@ class ActivityDetailsPage extends StatelessWidget {
                                 Text('Fee: '),
                                 SizedBox(height: 10),
                                 Text('Description: '),
+                                SizedBox(height: 10),
+                                Text('Status: '),
                               ],
                             ),
                           ),
@@ -509,6 +588,8 @@ class ActivityDetailsPage extends StatelessWidget {
                                   Text('${activity['activityFee']}'),
                                   SizedBox(height: 10),
                                   Text('${activity['activityDescription']}'),
+                                  SizedBox(height: 10),
+                                  Text('${activity['activityStatus']}'),
                                 ],
                               ),
                             ),
@@ -666,7 +747,7 @@ class ActivityDetailsPage extends StatelessWidget {
                                       'No participants found for this activity.');
                                 }
 
-                                return Column(
+                                return Row(
                                   children: bracketDocuments.map(
                                     (bracket) {
                                       String teamID = bracket['team_id'];
@@ -695,9 +776,36 @@ class ActivityDetailsPage extends StatelessWidget {
                                             return Text('Team data not found');
                                           }
 
-                                          return Text(teamData['team_name'],
-                                              textAlign: TextAlign
-                                                  .left); // Access the data you need from the 'teams' collection
+                                          var teamImageUrl =
+                                              teamData['teamImageUrl'];
+
+                                          return GestureDetector(
+                                            onTap: () {
+                                              print(teamID);
+                                              // Add your onTap logic here
+                                            },
+                                            child: Column(
+                                              children: [
+                                                CircleAvatar(
+                                                  backgroundImage: teamImageUrl
+                                                          .isNotEmpty
+                                                      ? NetworkImage(
+                                                          teamImageUrl)
+                                                      : AssetImage(
+                                                              'assets/images/defaultTeam.png')
+                                                          as ImageProvider,
+                                                  radius: 26,
+                                                ),
+                                                SizedBox(width: 8),
+                                                Text(
+                                                  teamData['team_name'],
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ],
+                                            ),
+                                          );
                                         },
                                       );
                                     },
@@ -711,42 +819,174 @@ class ActivityDetailsPage extends StatelessWidget {
                         child:
                             SizedBox(), // This SizedBox will take all available space
                       ),
-                      Row(
-                        children: [
-                          Expanded(
-                              child: ElevatedButton(
-                            onPressed: () {
-                              if (activity['activityisPrivate'] == true &&
-                                  activity['activityType'] ==
-                                      "Normal Activity") {
-                                requestToJoinActivity(context, activityID,
-                                    userEmail!, activity['user_email']);
-                                print("private dan normal");
-                              } else if (activity['activityisPrivate'] ==
-                                      true &&
-                                  (activity['activityType'] == "Tournament" ||
-                                      activity['activityType'] == "Sparring")) {
-                                addTournamentBracket(
-                                    context,
-                                    userEmail!,
-                                    activity['sportName'],
-                                    activityID,
-                                    activity['user_email']);
-                              } else {
-                                addParticipant(context, activityID, userEmail!);
+                      FutureBuilder<bool>(
+                        future: activity['activityType'] == 'Normal Activity'
+                            ? isUserParticipant(activityID, userEmail!)
+                            : isTeamParticipant(activityID, userEmail!),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return CircularProgressIndicator(); // Show loading indicator while waiting for the result.
+                          } else if (snapshot.hasError) {
+                            return Text('Error: ${snapshot.error}');
+                          } else {
+                            bool isParticipant = snapshot.data ?? false;
+
+                            if (!isParticipant) {
+                              Future<int> participantCount =
+                                  getParticipantCount(activityID);
+                              return FutureBuilder<int>(
+                                future: participantCount,
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return CircularProgressIndicator();
+                                  } else if (snapshot.hasError) {
+                                    return Text('Error: ${snapshot.error}');
+                                  } else {
+                                    int count = snapshot.data ?? 0;
+
+                                    if (count >= activity['activityQuota']) {
+                                      return SizedBox(
+                                        height: 30,
+                                      );
+                                    }
+                                    return SizedBox(
+                                      height: 30,
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          if (activity['activityisPrivate'] ==
+                                                  true &&
+                                              activity['activityType'] ==
+                                                  "Normal Activity") {
+                                            requestToJoinActivity(
+                                              context,
+                                              activityID,
+                                              userEmail!,
+                                              activity['user_email'],
+                                            );
+                                            print("private dan normal");
+                                          } else if (activity[
+                                                      'activityisPrivate'] ==
+                                                  true &&
+                                              (activity['activityType'] ==
+                                                      "Tournament" ||
+                                                  activity['activityType'] ==
+                                                      "Sparring")) {
+                                            addTournamentBracket(
+                                              context,
+                                              userEmail!,
+                                              activity['sportName'],
+                                              activityID,
+                                              activity['user_email'],
+                                            );
+                                          } else {
+                                            addParticipant(context, activityID,
+                                                userEmail!);
+                                          }
+                                        },
+                                        child: Text(
+                                          activity['activityisPrivate'] == true
+                                              ? 'Request to Join'
+                                              : 'Join Activity',
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              Color.fromARGB(255, 230, 0, 0),
+                                          minimumSize: Size(double.infinity, 0),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                              );
+                            } else {
+                              // If the user is already a participant
+                              if (activity['user_email'] == userEmail) {
+                                if (activity['activityStatus'] == 'Waiting') {
+                                  return SizedBox(
+                                    height: 30,
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        updateActivityStatus(
+                                            'Ongoing', activityID);
+                                      },
+                                      child: Text('Ongoing'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.green,
+                                        minimumSize: Size(double.infinity, 0),
+                                      ),
+                                    ),
+                                  );
+                                } else if (activity['activityStatus'] ==
+                                    'Ongoing') {
+                                  return SizedBox(
+                                    height: 30,
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        updateActivityStatus(
+                                            'Completed', activityID);
+                                      },
+                                      child: Text('Completed'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.blue,
+                                        minimumSize: Size(double.infinity, 0),
+                                      ),
+                                    ),
+                                  );
+                                }
                               }
-                            },
-                            child: Text(
-                              activity['activityisPrivate'] == true
-                                  ? 'Request to Join'
-                                  : 'Join Activity',
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color.fromARGB(255, 230, 0, 0),
-                            ),
-                          )),
-                        ],
-                      ),
+                              if (activity['activityStatus'] == 'Completed' &&
+                                  activity['activityType'] ==
+                                      'Normal Activity') {
+                                return SizedBox(
+                                  height: 30,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              CommendationPage(activityID),
+                                        ),
+                                      );
+                                    },
+                                    child: Text('Give Commendation'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.orange,
+                                      minimumSize: Size(double.infinity, 0),
+                                    ),
+                                  ),
+                                );
+                              }
+                              if (activity['activityStatus'] == 'Completed' &&
+                                  activity['activityType'] == 'Sparring') {
+                                return SizedBox(
+                                  height: 30,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              CommendationPage(activityID),
+                                        ),
+                                      );
+                                    },
+                                    child: Text('Result'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.orange,
+                                      minimumSize: Size(double.infinity, 0),
+                                    ),
+                                  ),
+                                );
+                              }
+                              return SizedBox(); // If none of the conditions are met, return an empty SizedBox
+                              // If none of the conditions are met, return an empty SizedBox
+                            }
+                          }
+                        },
+                      )
                     ],
                   ),
                 );

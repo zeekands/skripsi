@@ -170,18 +170,29 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
                   editTeam();
                 } else if (value == 'manageMembers') {
                   ManageTeamMember();
+                } else if (value == 'Leaveteam') {
+                  // leaveTeam();
                 }
               },
               itemBuilder: (BuildContext context) {
-                return {'edit', 'manageMembers'}.map((String choice) {
-                  return PopupMenuItem<String>(
-                    value: choice,
-                    child:
-                        Text(choice == 'edit' ? 'Edit Team' : 'Manage Members'),
-                  );
-                }).toList();
+                if (userEmail == widget.teamCreator) {
+                  return {'edit', 'manageMembers'}.map((String choice) {
+                    return PopupMenuItem<String>(
+                      value: choice,
+                      child: Text(
+                          choice == 'edit' ? 'Edit Team' : 'Manage Members'),
+                    );
+                  }).toList();
+                } else {
+                  return {'Leaveteam'}.map((String choice) {
+                    return PopupMenuItem<String>(
+                      value: choice,
+                      child: Text(choice),
+                    );
+                  }).toList();
+                }
               },
-            ),
+            )
         ],
       ),
       body: Padding(

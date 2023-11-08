@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
 import 'package:intl/intl.dart';
@@ -30,6 +31,8 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
   TextEditingController registrationStartController = TextEditingController();
   TextEditingController registrationEndController = TextEditingController();
   DateTime selectedDate = DateTime.now();
+  DateTime rStartDate = DateTime.now();
+  DateTime rEndDate = DateTime.now();
   TimeOfDay selectedTime = TimeOfDay.now();
   String? userEmail = FirebaseAuth.instance.currentUser?.email;
   bool isSubmitting = false;
@@ -66,6 +69,36 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
     if (pickedDate != null && pickedDate != selectedDate) {
       setState(() {
         selectedDate = pickedDate;
+      });
+    }
+  }
+
+  Future<void> registrationStartDate(BuildContext context) async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: rStartDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+
+    if (pickedDate != null && pickedDate != rStartDate) {
+      setState(() {
+        rStartDate = pickedDate;
+      });
+    }
+  }
+
+  Future<void> registrationEndDate(BuildContext context) async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: rEndDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+
+    if (pickedDate != null && pickedDate != rEndDate) {
+      setState(() {
+        rEndDate = pickedDate;
       });
     }
   }
@@ -113,6 +146,10 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
       // Add a new document with the custom ID
       int valueDate =
           int.parse(DateFormat('yyyyMMdd').format(selectedDate).toString());
+      int valueRStartDate =
+          int.parse(DateFormat('yyyyMMdd').format(rStartDate).toString());
+      int valueREndDate =
+          int.parse(DateFormat('yyyyMMdd').format(rEndDate).toString());
       int valueTime =
           int.parse(padding(selectedTime.hour) + padding(selectedTime.minute));
       await activities.doc(nextActivityID.toString()).set({
@@ -132,10 +169,14 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
             widget.activityType == 'Tournament')
           'activityQuota': int.parse(activityQuotaController.text),
         if (widget.activityType == 'Tournament')
-          'registrationStart': registrationStartController.text,
+          'registrationStart': DateFormat('dd-MM-yyyy').format(rStartDate),
         if (widget.activityType == 'Tournament')
-          'registrationEnd': registrationEndController.text,
-        if (widget.activityType == 'Sparring') 'activityQuota': "2",
+          'RegistrationStartDateValue': valueRStartDate,
+        if (widget.activityType == 'Tournament')
+          'registrationEnd': DateFormat('dd-MM-yyyy').format(rEndDate),
+        if (widget.activityType == 'Tournament')
+          'RegistrationEndDateValue': valueREndDate,
+        if (widget.activityType == 'Sparring') 'activityQuota': 2,
         if (widget.activityType == "Normal Activity")
           'activityisPrivate': isPrivate,
         if (widget.activityType == "Tournament" ||
@@ -276,6 +317,8 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
     return null;
   }
 
+  final _formKey = GlobalKey<FormState>();
+
   bool isPrivate = false;
 
   Widget build(BuildContext context) {
@@ -284,184 +327,368 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
         title: Text('Create New Activity'),
         backgroundColor: Color.fromARGB(255, 230, 0, 0),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Activity Type: ${widget.activityType}',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(height: 20),
-            StreamBuilder<QuerySnapshot>(
-              stream:
-                  FirebaseFirestore.instance.collection('sports').snapshots(),
-              builder: (BuildContext context,
-                  AsyncSnapshot<QuerySnapshot> snapshot) {
-                if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
-                }
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Activity Type: ${widget.activityType}',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              SizedBox(height: 20),
+              StreamBuilder<QuerySnapshot>(
+                stream:
+                    FirebaseFirestore.instance.collection('sports').snapshots(),
+                builder: (BuildContext context,
+                    AsyncSnapshot<QuerySnapshot> snapshot) {
+                  if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  }
 
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return CircularProgressIndicator(); // Loading indicator
-                }
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return CircularProgressIndicator(); // Loading indicator
+                  }
 
-                var sportsList = snapshot.data!.docs;
-                List<DropdownMenuItem<String>> items = [];
+                  var sportsList = snapshot.data!.docs;
+                  List<DropdownMenuItem<String>> items = [];
 
-                for (var sportDoc in sportsList) {
-                  String sportName = sportDoc['sport_name'];
-                  items.add(DropdownMenuItem(
-                    value: sportName,
-                    child: Text(sportName),
-                  ));
-                }
+                  for (var sportDoc in sportsList) {
+                    String sportName = sportDoc['sport_name'];
+                    items.add(DropdownMenuItem(
+                      value: sportName,
+                      child: Text(sportName),
+                    ));
+                  }
 
-                return DropdownButtonFormField<String>(
-                  value: selectedSport,
-                  items: items,
-                  onChanged: (value) {
-                    setState(() {
-                      selectedSport = value;
-                    });
+                  return DropdownButtonFormField<String>(
+                    value: selectedSport,
+                    items: items,
+                    onChanged: (value) {
+                      setState(() {
+                        selectedSport = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Sport',
+                      border: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black, width: 2.0),
+                      ),
+                      labelStyle: TextStyle(color: Colors.black),
+                    ),
+                  );
+                },
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    labelText: 'Activity Title',
+                    border: OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2.0),
+                    ),
+                    labelStyle: TextStyle(color: Colors.black),
+                  ),
+                  controller: activityTitleController,
+                  validator: (value) {
+                    if (value == null || value.isEmpty || value.length < 4) {
+                      return 'Title must be at least 4 characters long.';
+                    }
+                    return null;
                   },
-                  decoration: InputDecoration(labelText: 'Sport'),
-                );
-              },
-            ),
-            TextFormField(
-              decoration: InputDecoration(labelText: 'Activity Title'),
-              controller: activityTitleController,
-            ),
-            TextFormField(
-              decoration: InputDecoration(labelText: 'Activity Location'),
-              controller: activityLocationController,
-            ),
-            // GooglePlaceAutoCompleteTextField(
-            //   textEditingController: activityLocationController,
-            //   googleAPIKey: "AIzaSyB1nNrh6n-Be5ziyOBgw-PXylYpJyqC0zU",
-            //   inputDecoration: InputDecoration(),
-            //   getPlaceDetailWithLatLng: (Prediction prediction) {
-            //     // this method will return latlng with place detail
-            //     print("placeDetails" + prediction.lng.toString());
-            //   }, // this callback is called when isLatLngRequired is true
-            //   itemClick: (Prediction prediction) {
-            //     //controller.text=prediction.description;
-            //     //controller.selection = TextSelection.fromPosition(TextPosition(offset: prediction.description.length));
-            //   },
-            //   // if we want to make custom list item builder
-            //   itemBuilder: (context, index, Prediction prediction) {
-            //     return Container(
-            //       padding: EdgeInsets.all(10),
-            //       child: Row(
-            //         children: [
-            //           Icon(Icons.location_on),
-            //           SizedBox(
-            //             width: 7,
-            //           ),
-            //           Expanded(child: Text("${prediction.description ?? ""}"))
-            //         ],
-            //       ),
-            //     );
-            //   },
-            //   // if you want to add seperator between list items
-            //   seperatedBuilder: Divider(),
-            //   // want to show close icon
-            //   isCrossBtnShown: true,
-            // ),
-            TextFormField(
-              decoration: InputDecoration(labelText: 'Time Start'),
-              style: TextStyle(fontSize: 20),
-              onTap: () => _selectTime(context),
-              controller: TextEditingController(
-                text:
-                    "${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}",
+                ),
               ),
-              readOnly: true,
-            ),
-            TextFormField(
-              decoration: InputDecoration(labelText: 'Date Start'),
-              style: TextStyle(fontSize: 20),
-              onTap: () => _selectDate(context),
-              controller: TextEditingController(
-                text:
-                    "${selectedDate.day.toString().padLeft(2, '0')}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.year}",
-              ),
-              readOnly: true,
-            ),
-            TextFormField(
-              decoration:
-                  InputDecoration(labelText: 'Activity Fee(per person)'),
-              controller: activityFeeController,
-            ),
-            if (widget.activityType == 'Normal Activity' ||
-                widget.activityType == 'Sparring')
-              TextFormField(
-                decoration:
-                    InputDecoration(labelText: 'Activity Duration in hour'),
-                controller: activityDurationController,
-              ),
-            TextFormField(
-              decoration: InputDecoration(labelText: 'Activity Description'),
-              controller: activityDescriptionController,
-            ),
-            if (widget.activityType == 'Normal Activity' ||
-                widget.activityType == 'Tournament')
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Activity Quota'),
-                controller: activityQuotaController,
-              ),
-            if (widget.activityType == 'Tournament')
-              TextFormField(
-                decoration: InputDecoration(
-                    labelText: 'Registration Start (Date & Time)'),
-                controller: registrationStartController,
-              ),
-            if (widget.activityType == 'Tournament')
-              TextFormField(
-                decoration: InputDecoration(
-                    labelText: 'Registration End (Date & Time)'),
-                controller: registrationEndController,
-              ),
-            SizedBox(height: 20),
-            if (widget.activityType == 'Normal Activity') // Add this condition
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: 20),
-                  Text(
-                    'Privacy:',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    labelText: 'Activity Location',
+                    border: OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2.0),
+                    ),
+                    labelStyle: TextStyle(color: Colors.black),
                   ),
-                  RadioListTile(
-                    value: false,
-                    groupValue: isPrivate,
-                    onChanged: (value) {
-                      setState(() {
-                        isPrivate = false;
-                      });
+                  controller: activityLocationController,
+                  validator: (value) {
+                    if (value == null || value.isEmpty || value.length < 4) {
+                      return 'Location must be at least 4 characters long.';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+              // GooglePlaceAutoCompleteTextField(
+              //   textEditingController: activityLocationController,
+              //   googleAPIKey: "AIzaSyB1nNrh6n-Be5ziyOBgw-PXylYpJyqC0zU",
+              //   inputDecoration: InputDecoration(),
+              //   getPlaceDetailWithLatLng: (Prediction prediction) {
+              //     // this method will return latlng with place detail
+              //     print("placeDetails" + prediction.lng.toString());
+              //   }, // this callback is called when isLatLngRequired is true
+              //   itemClick: (Prediction prediction) {
+              //     //controller.text=prediction.description;
+              //     //controller.selection = TextSelection.fromPosition(TextPosition(offset: prediction.description.length));
+              //   },
+              //   // if we want to make custom list item builder
+              //   itemBuilder: (context, index, Prediction prediction) {
+              //     return Container(
+              //       padding: EdgeInsets.all(10),
+              //       child: Row(
+              //         children: [
+              //           Icon(Icons.location_on),
+              //           SizedBox(
+              //             width: 7,
+              //           ),
+              //           Expanded(child: Text("${prediction.description ?? ""}"))
+              //         ],
+              //       ),
+              //     );
+              //   },
+              //   // if you want to add seperator between list items
+              //   seperatedBuilder: Divider(),
+              //   // want to show close icon
+              //   isCrossBtnShown: true,
+              // ),
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    labelText: 'Time Start',
+                    border: OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2.0),
+                    ),
+                    labelStyle: TextStyle(color: Colors.black),
+                  ),
+                  style: TextStyle(fontSize: 20),
+                  onTap: () => _selectTime(context),
+                  controller: TextEditingController(
+                    text:
+                        "${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}",
+                  ),
+                  readOnly: true,
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    labelText: 'Date Start',
+                    border: OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2.0),
+                    ),
+                    labelStyle: TextStyle(color: Colors.black),
+                  ),
+                  style: TextStyle(fontSize: 20),
+                  onTap: () => _selectDate(context),
+                  controller: TextEditingController(
+                    text:
+                        "${selectedDate.day.toString().padLeft(2, '0')}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.year}",
+                  ),
+                  readOnly: true,
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    labelText: 'Activity Fee(per person)',
+                    border: OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2.0),
+                    ),
+                    labelStyle: TextStyle(color: Colors.black),
+                  ),
+                  controller: activityFeeController,
+                  keyboardType: TextInputType
+                      .number, // This ensures only numbers are entered
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly
+                  ], // Allow digits only
+                  validator: (value) {
+                    if (value == null ||
+                        value.isEmpty ||
+                        int.tryParse(value) == null) {
+                      return 'Fee must be a valid integer.';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+              if (widget.activityType == 'Normal Activity' ||
+                  widget.activityType == 'Sparring')
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: TextFormField(
+                    decoration: InputDecoration(
+                      labelText: 'Activity Duration in hour',
+                      border: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black, width: 2.0),
+                      ),
+                      labelStyle: TextStyle(color: Colors.black),
+                    ),
+                    controller: activityDurationController,
+                    keyboardType: TextInputType
+                        .number, // This ensures only numbers are entered
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly
+                    ], // Allow digits only
+                    validator: (value) {
+                      if (value == null ||
+                          value.isEmpty ||
+                          int.tryParse(value) == null) {
+                        return 'Duration must be a valid integer.';
+                      }
+                      return null;
                     },
-                    title: Text('Anyone can join'),
                   ),
-                  RadioListTile(
-                    value: true,
-                    groupValue: isPrivate,
-                    onChanged: (value) {
-                      setState(() {
-                        isPrivate = true;
-                      });
-                    },
-                    title: Text('Private'),
+                ),
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    labelText: 'Activity Description',
+                    border: OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2.0),
+                    ),
+                    labelStyle: TextStyle(color: Colors.black),
                   ),
-                ],
+                  controller: activityDescriptionController,
+                  validator: (value) {
+                    if (value == null || value.isEmpty || value.length < 4) {
+                      return 'Description must be at least 4 characters long.';
+                    }
+                    return null;
+                  },
+                ),
               ),
-            ElevatedButton(
-              onPressed: () {
-                addActivity(); // Handle the submission of the form here
-                // You can access the entered values using the controllers
-              },
-              child: Text('Submit'),
-            ),
-          ],
+              if (widget.activityType == 'Normal Activity' ||
+                  widget.activityType == 'Tournament')
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: TextFormField(
+                    decoration: InputDecoration(
+                      labelText: 'Activity Quota',
+                      border: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black, width: 2.0),
+                      ),
+                      labelStyle: TextStyle(color: Colors.black),
+                    ),
+                    controller: activityQuotaController,
+                    keyboardType: TextInputType
+                        .number, // This ensures only numbers are entered
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly
+                    ], // Allow digits only
+                    validator: (value) {
+                      if (value == null ||
+                          value.isEmpty ||
+                          int.tryParse(value) == null) {
+                        return 'Duration must be a valid integer.';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              if (widget.activityType == 'Tournament')
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: TextFormField(
+                    decoration: InputDecoration(
+                      labelText: 'Registration Start (Date)',
+                      border: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black, width: 2.0),
+                      ),
+                      labelStyle: TextStyle(color: Colors.black),
+                    ),
+                    style: TextStyle(fontSize: 20),
+                    onTap: () => registrationStartDate(context),
+                    controller: TextEditingController(
+                      text:
+                          "${rStartDate.day.toString().padLeft(2, '0')}-${rStartDate.month.toString().padLeft(2, '0')}-${rStartDate.year}",
+                    ),
+                    readOnly: true,
+                  ),
+                ),
+              if (widget.activityType == 'Tournament')
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: TextFormField(
+                    decoration: InputDecoration(
+                      labelText: 'Registration End (Date & Time)',
+                      border: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black, width: 2.0),
+                      ),
+                      labelStyle: TextStyle(color: Colors.black),
+                    ),
+                    style: TextStyle(fontSize: 20),
+                    onTap: () => registrationEndDate(context),
+                    controller: TextEditingController(
+                      text:
+                          "${rEndDate.day.toString().padLeft(2, '0')}-${rEndDate.month.toString().padLeft(2, '0')}-${rEndDate.year}",
+                    ),
+                    readOnly: true,
+                  ),
+                ),
+              SizedBox(height: 20),
+              if (widget.activityType ==
+                  'Normal Activity') // Add this condition
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 10),
+                    Text(
+                      'Privacy:',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    RadioListTile(
+                      value: false,
+                      groupValue: isPrivate,
+                      onChanged: (value) {
+                        setState(() {
+                          isPrivate = false;
+                        });
+                      },
+                      title: Text('Anyone can join'),
+                      activeColor: Color.fromARGB(255, 230, 0, 0),
+                    ),
+                    RadioListTile(
+                        value: true,
+                        groupValue: isPrivate,
+                        onChanged: (value) {
+                          setState(() {
+                            isPrivate = true;
+                          });
+                        },
+                        title: Text('Private'),
+                        activeColor: Color.fromARGB(255, 230, 0, 0)),
+                  ],
+                ),
+              Container(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    addActivity(); // Handle the submission of the form here
+                    // You can access the entered values using the controllers
+                  },
+                  child: Text('Submit'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color.fromARGB(255, 230, 0, 0),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

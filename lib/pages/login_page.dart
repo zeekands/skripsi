@@ -53,12 +53,6 @@ class _LoginPageState extends State<LoginPage> {
                     decoration: InputDecoration(
                       labelText: "Email",
                       border: OutlineInputBorder(),
-                      // border: OutlineInputBorder(
-                      //   borderSide: BorderSide(color: Colors.black, width: 2.0),
-                      // ),
-                      // enabledBorder: OutlineInputBorder(
-                      //   borderSide: BorderSide(color: Colors.white, width: 2.0),
-                      // ),
                       focusedBorder: OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.black, width: 2.0),
                       ),

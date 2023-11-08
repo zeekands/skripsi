@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:sportifyapp/pages/teamdetail_page.dart';
 
 class InboxPage extends StatefulWidget {
   @override
@@ -536,86 +537,126 @@ class InboxTab extends StatelessWidget {
             print(
                 'Activity Title: $activityTitle, Sport: $activitySport, Creator Email: $activityCreatorEmail');
 
-            showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: Center(child: Text('Join Request')),
-                  content: Column(
-                    mainAxisSize: MainAxisSize
-                        .min, // Make the column take the minimum vertical space needed
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            FirebaseFirestore.instance
+                .collection('teams')
+                .doc(requestTeam)
+                .get()
+                .then((DocumentSnapshot teamDocumentSnapshot) {
+              if (teamDocumentSnapshot.exists) {
+                Map<String, dynamic> teamData =
+                    teamDocumentSnapshot.data() as Map<String, dynamic>;
+                String teamImageUrl = teamData['teamImageUrl'];
+                String teamName = teamData['team_name'];
+                int teamID = int.parse(requestTeam);
+                String teamSport = teamData['team_sport'];
+                String teamCreator = teamData['team_creator_email'];
+                String teamDes = teamData['team_description'];
+
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: Center(child: Text('Join Request')),
+                      content: Column(
+                        mainAxisSize: MainAxisSize
+                            .min, // Make the column take the minimum vertical space needed
                         children: [
-                          CircleAvatar(),
-                          Text(
-                            ">>",
-                            style: TextStyle(
-                                fontSize: 24), // Adjust the font size as needed
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => TeamDetailPage(
+                                    teamName: teamName,
+                                    teamId: teamID,
+                                    teamSport: teamSport,
+                                    teamCreator: teamCreator,
+                                    teamImageUrl: teamImageUrl,
+                                    teamDes: teamDes,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircleAvatar(
+                                  backgroundImage: teamImageUrl != null &&
+                                          teamImageUrl.isNotEmpty
+                                      ? NetworkImage(teamImageUrl)
+                                      : AssetImage(
+                                              'assets/images/defaultTeam.png')
+                                          as ImageProvider,
+                                  radius: 26,
+                                ),
+                              ],
+                            ),
                           ),
-                          CircleAvatar(),
+                          SizedBox(
+                              height:
+                                  8), // Add a small vertical space between the Row and the Text
+                          Container(
+                            child: Text(
+                              '$requestTeam has requested to join your activity $activityTitle',
+                              textAlign: TextAlign.center, // Center the text
+                            ),
+                          ),
                         ],
                       ),
-                      SizedBox(
-                          height:
-                              8), // Add a small vertical space between the Row and the Text
-                      Container(
-                        child: Text(
-                          '$requestTeam has requested to join your activity $activityTitle',
-                          textAlign: TextAlign.center, // Center the text
+                      actions: <Widget>[
+                        TextButton(
+                          child: Text('Accept'),
+                          onPressed: () {
+                            FirebaseFirestore.instance
+                                .collection('TournamentBracket')
+                                .doc(bracketId)
+                                .update({'status': 'Confirmed'}).then((value) {
+                              print('Request accepted');
+                              FirebaseFirestore.instance
+                                  .collection('notifications')
+                                  .doc(notificationId)
+                                  .delete();
+                            }).catchError((error) {
+                              print('Error accepting request: $error');
+                            });
+                            Navigator.of(context).pop(); // Close the dialog
+                          },
                         ),
-                      ),
-                    ],
-                  ),
-                  actions: <Widget>[
-                    TextButton(
-                      child: Text('Accept'),
-                      onPressed: () {
-                        FirebaseFirestore.instance
-                            .collection('TournamentBracket')
-                            .doc(bracketId)
-                            .update({'status': 'Confirmed'}).then((value) {
-                          print('Request accepted');
-                          FirebaseFirestore.instance
-                              .collection('notifications')
-                              .doc(notificationId)
-                              .delete();
-                        }).catchError((error) {
-                          print('Error accepting request: $error');
-                        });
-                        Navigator.of(context).pop(); // Close the dialog
-                      },
-                    ),
-                    TextButton(
-                      child: Text('Decline'),
-                      onPressed: () {
-                        FirebaseFirestore.instance
-                            .collection('TournamentBracket')
-                            .doc(bracketId)
-                            .delete()
-                            .then((value) {
-                          print('Request declined');
-                          FirebaseFirestore.instance
-                              .collection('notifications')
-                              .doc(notificationId)
-                              .delete();
-                        }).catchError((error) {
-                          print('Error declining request: $error');
-                        });
-                        Navigator.of(context).pop(); // Close the dialog
-                      },
-                    ),
-                    TextButton(
-                      child: Text('Close'),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                  ],
+                        TextButton(
+                          child: Text('Decline'),
+                          onPressed: () {
+                            FirebaseFirestore.instance
+                                .collection('TournamentBracket')
+                                .doc(bracketId)
+                                .delete()
+                                .then((value) {
+                              print('Request declined');
+                              FirebaseFirestore.instance
+                                  .collection('notifications')
+                                  .doc(notificationId)
+                                  .delete();
+                            }).catchError((error) {
+                              print('Error declining request: $error');
+                            });
+                            Navigator.of(context).pop(); // Close the dialog
+                          },
+                        ),
+                        TextButton(
+                          child: Text('Close'),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                      ],
+                    );
+                  },
                 );
-              },
-            );
+              } else {
+                print('Team Document does not exist');
+              }
+            }).catchError((error) {
+              print('Error getting team document: $error');
+            });
           } else {
             print('Activity Document does not exist');
           }

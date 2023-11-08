@@ -6,6 +6,7 @@ import 'package:sportifyapp/pages/editprofile_page.dart';
 
 import 'addprofileSport.dart';
 import 'adminpanel_page.dart';
+import 'changepassword_page.dart';
 
 class ProfilePage extends StatelessWidget {
   @override
@@ -80,18 +81,12 @@ class ProfilePage extends StatelessWidget {
                     data: IconThemeData(color: Colors.grey),
                     child: PopupMenuButton<String>(
                       onSelected: (choice) {
-                        if (choice == 'edit_profile') {
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      EditProfilePage(user: user),
-                                ),
-                              );
-                            },
-                            child: Text('Edit Profile'),
+                        if (choice == 'change_password') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ChangePasswordPage(),
+                            ),
                           );
                         } else if (choice == 'admin_panel' && userType == 1) {
                           Navigator.push(
@@ -112,8 +107,8 @@ class ProfilePage extends StatelessWidget {
                               child: Text('Admin Panel'),
                             ),
                           PopupMenuItem<String>(
-                            value: 'edit_profile',
-                            child: Text('Edit Profile'),
+                            value: 'change_password',
+                            child: Text('Change Password'),
                           ),
                           PopupMenuItem<String>(
                             value: 'logout',
