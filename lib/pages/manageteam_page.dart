@@ -11,6 +11,114 @@ class ManageTeamMemberPage extends StatefulWidget {
 }
 
 class _ManageTeamMemberPageState extends State<ManageTeamMemberPage> {
+  Future<void> removeUserFromTeam(String userEmail) async {
+    // Check if the user is the creator of the team
+    bool isCreator = await checkIfUserIsCreator(userEmail);
+
+    // Show different dialogs based on whether the user is the creator
+    if (isCreator) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Remove User'),
+            content: Text(
+              'You cannot remove yourself as the team creator. Please ask another team member to remove you.',
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the dialog
+                },
+                child: Text(
+                  'OK',
+                  style: TextStyle(
+                    color: Colors.black, // Set the text color to black
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      // Show the regular removal confirmation dialog
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Remove User'),
+            content: Text(
+              'Are you sure you want to remove ${userEmail} from the team?',
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the dialog
+                },
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: Colors.black, // Set the text color to black
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  await removeMember(userEmail);
+                  Navigator.of(context).pop(); // Close the dialog
+                },
+                child: Text(
+                  'Remove',
+                  style: TextStyle(
+                    color: Colors.black, // Set the text color to black
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
+
+  Future<void> removeMember(String userEmail) async {
+    // Add the logic to remove the user from the team here
+    // For example, you can delete the team member document from the 'team_members' collection
+    await FirebaseFirestore.instance
+        .collection('team_members')
+        .where('team_id', isEqualTo: widget.teamId)
+        .where('user_email', isEqualTo: userEmail)
+        .get()
+        .then((snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        snapshot.docs.first.reference.delete();
+      }
+    });
+  }
+
+  Future<bool> checkIfUserIsCreator(String userEmail) async {
+    try {
+      // Query the teams collection to check if the user is the creator
+      var teamSnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .doc(widget.teamId.toString())
+          .get();
+
+      if (teamSnapshot.exists) {
+        var teamData = teamSnapshot.data() as Map<String, dynamic>;
+        return teamData['team_creator_email'] == userEmail;
+      } else {
+        // Handle the case where the team with the specified ID does not exist
+        return false;
+      }
+    } catch (e) {
+      // Handle errors
+      print('Error checking if user is creator: $e');
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -70,6 +178,12 @@ class _ManageTeamMemberPageState extends State<ManageTeamMemberPage> {
                               as ImageProvider,
                     ), // Display user's profile image
                     // Add more information if needed
+                    trailing: IconButton(
+                      icon: Icon(Icons.remove),
+                      onPressed: () {
+                        removeUserFromTeam(memberData['user_email']);
+                      },
+                    ),
                   );
                 },
               );

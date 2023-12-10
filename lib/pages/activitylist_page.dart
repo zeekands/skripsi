@@ -8,14 +8,97 @@ import 'package:intl/intl.dart';
 import 'activity_detail.dart';
 import 'activity_type.dart';
 
-class ActivityListPage extends StatelessWidget {
+class ActivityListPage extends StatefulWidget {
   final DateTime selectedDate;
-  final TimeOfDay selectedTime;
+  TimeOfDay selectedTime;
 
   ActivityListPage({
     required this.selectedDate,
     required this.selectedTime,
   });
+
+  @override
+  _ActivityListPageState createState() => _ActivityListPageState();
+}
+
+class _ActivityListPageState extends State<ActivityListPage> {
+  Timer? _timer;
+  String? userEmail = FirebaseAuth.instance.currentUser?.email;
+  TimeOfDay timevalue = TimeOfDay.now();
+  String? city = '';
+
+  void createTimer() {
+    _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      setState(() {
+        // Update the time or perform any other desired actions
+        timevalue = TimeOfDay.now();
+
+        print("Updated time timer: ${timevalue}");
+      });
+    });
+  }
+
+  Future<String?> getUserLocation() async {
+    try {
+      // Get the current user's email
+      String? userEmail = FirebaseAuth.instance.currentUser?.email;
+
+      if (userEmail != null) {
+        // Reference to the users collection
+        CollectionReference users =
+            FirebaseFirestore.instance.collection('users');
+
+        // Query the users collection based on the document ID
+        QuerySnapshot querySnapshot =
+            await users.where(FieldPath.documentId, isEqualTo: userEmail).get();
+
+        // Check if there is a matching document
+        if (querySnapshot.docs.isNotEmpty) {
+          // Get the first document (assuming there is only one match)
+          var userDocument = querySnapshot.docs.first;
+
+          // Access the 'city' field from the document
+          city = userDocument['city'];
+
+          // Return the city
+          return city;
+        } else {
+          // If no matching document is found
+          print("null1");
+          return null;
+        }
+      } else {
+        print("null2");
+        // If user email is null
+        return null;
+      }
+    } catch (e) {
+      // Handle any errors that might occur during the process
+      print("Error getting user location: $e");
+      return null;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Create the timer when the widget is initialized
+    createTimer();
+    _init();
+  }
+
+  Future<void> _init() async {
+    await getUserLocation();
+    print(city);
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    // Cancel the timer to prevent memory leaks when the widget is disposed
+    _timer?.cancel();
+    super.dispose();
+  }
 
   Future<String> getSportImage(String sportName) async {
     try {
@@ -44,6 +127,21 @@ class ActivityListPage extends StatelessWidget {
     }
   }
 
+  String _formatFee(String fee) {
+    // Convert the fee to an integer
+    int? feeValue = int.tryParse(fee);
+
+    // Check if the conversion is successful
+    if (feeValue != null) {
+      // Format the fee using NumberFormat
+      String formattedFee = NumberFormat('#,###').format(feeValue);
+      return formattedFee;
+    } else {
+      // Handle the case where activity['activityFee'] is not a valid number
+      return 'Invalid Fee';
+    }
+  }
+
   Future<int> getTotalParticipants(String activityId) async {
     try {
       // Get a reference to the Firestore collection
@@ -51,8 +149,10 @@ class ActivityListPage extends StatelessWidget {
           FirebaseFirestore.instance.collection('participants');
 
       // Query Firestore to get the number of participants for the provided activity ID
-      QuerySnapshot snapshot =
-          await participants.where('activity_id', isEqualTo: activityId).get();
+      QuerySnapshot snapshot = await participants
+          .where('activity_id', isEqualTo: activityId)
+          .where('status', isEqualTo: 'Confirmed')
+          .get();
 
       return snapshot.docs.length;
     } catch (e) {
@@ -84,24 +184,57 @@ class ActivityListPage extends StatelessWidget {
     }
   }
 
-  Timer? _timer;
-  String? userEmail = FirebaseAuth.instance.currentUser?.email;
-  TimeOfDay timevalue = TimeOfDay.now();
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Hello, $userEmail'),
+        title: FutureBuilder<DocumentSnapshot>(
+          future: FirebaseFirestore.instance
+              .collection('users')
+              .doc(userEmail)
+              .get(),
+          builder:
+              (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
+            if (snapshot.connectionState == ConnectionState.done) {
+              if (snapshot.hasData) {
+                Map<String, dynamic>? userData =
+                    snapshot.data?.data() as Map<String, dynamic>?;
+
+                if (userData != null) {
+                  String userName = userData['name'] ?? 'N/A';
+                  String imageUrl = userData['profileImageUrl'] ?? '';
+                  return Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 22,
+                        backgroundImage: imageUrl != null && imageUrl.isNotEmpty
+                            ? NetworkImage(imageUrl)
+                            : AssetImage('assets/images/defaultprofile.png')
+                                as ImageProvider,
+                      ),
+                      SizedBox(width: 10),
+                      Text(userName)
+                    ],
+                  );
+                }
+              }
+            }
+
+            return Text('User Name');
+          },
+        ),
         backgroundColor: Color.fromARGB(255, 230, 0, 0),
       ),
       body: StreamBuilder(
         stream: FirebaseFirestore.instance
             .collection('activities')
             .where('activityDateValue',
-                isGreaterThanOrEqualTo:
-                    int.parse(DateFormat('yyyyMMdd').format(selectedDate)))
+                isGreaterThanOrEqualTo: int.parse(
+                    DateFormat('yyyyMMdd').format(widget.selectedDate)))
             .where('activityStatus', isEqualTo: 'Waiting')
+            .where('activityCity', isEqualTo: city)
+            .orderBy('activityDateValue')
+            .orderBy('activityTimeValue')
             .snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (snapshot.hasError) {
@@ -113,12 +246,6 @@ class ActivityListPage extends StatelessWidget {
               child: CircularProgressIndicator(),
             );
           }
-          print(
-              "Selected Date: ${DateFormat('dd-MM-yyyy').format(selectedDate)}");
-          int timeAsInteger = (selectedTime.hour * 100) + selectedTime.minute;
-          print("time now : ${timeAsInteger}");
-          print("time value : ${timevalue}");
-          print("Activities count: ${snapshot.data!.docs.length}");
 
           var activities = snapshot.data!.docs;
 
@@ -169,6 +296,20 @@ class ActivityListPage extends StatelessWidget {
                     itemCount: activitiesForDate.length,
                     itemBuilder: (BuildContext context, int index) {
                       var activity = activitiesForDate[index];
+                      if (activity['activityDate'] ==
+                          DateFormat('dd-MM-yyyy').format(DateTime.now())) {
+                        int activityTimeValue = activity['activityTimeValue'];
+                        int currentTimeValue =
+                            (timevalue.hour * 100) + timevalue.minute;
+                        print('tes$currentTimeValue');
+
+                        // Hide activities where the time is equal to or earlier than the current time
+                        if (currentTimeValue >= activityTimeValue) {
+                          return SizedBox
+                              .shrink(); // Returns an empty widget, effectively hiding it
+                        }
+                      }
+
                       return GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -238,15 +379,24 @@ class ActivityListPage extends StatelessWidget {
                                             fontWeight: FontWeight.bold,
                                             fontSize: 18,
                                           )),
+                                      SizedBox(height: 5),
                                       Text(
                                           'Location: ${activity['activityLocation']}'),
-                                      Text('Fee: ${activity['activityFee']}'),
+                                      SizedBox(height: 5),
+                                      Text(
+                                          'Fee: IDR ${_formatFee(activity['activityFee'])}'),
+                                      SizedBox(height: 5),
                                       if (activity['activityType'] ==
                                               'Normal Activity' ||
                                           activity['activityType'] ==
                                               'Sparring')
                                         Text(
                                             'Duration in hour: ${activity['activityDuration']}'),
+                                      if (activity['activityType'] ==
+                                              'Normal Activity' ||
+                                          activity['activityType'] ==
+                                              'Sparring')
+                                        SizedBox(height: 5),
                                       if (activity['activityType'] ==
                                           'Normal Activity')
                                         FutureBuilder<int>(
@@ -285,6 +435,7 @@ class ActivityListPage extends StatelessWidget {
                                             }
                                           },
                                         ),
+                                      SizedBox(height: 5),
                                       Text(
                                           'Activity Type: ${activity['activityType']}'),
                                     ],

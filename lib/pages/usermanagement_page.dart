@@ -20,7 +20,9 @@ class UserManagementPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('User Management')),
+      appBar: AppBar(
+          title: Text('User Management'),
+          backgroundColor: Color.fromARGB(255, 230, 0, 0)),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('users').snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {

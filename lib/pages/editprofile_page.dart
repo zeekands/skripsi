@@ -1,3 +1,4 @@
+import 'package:csc_picker/csc_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -21,14 +22,21 @@ class _EditProfilePageState extends State<EditProfilePage> {
   TextEditingController _nameController = TextEditingController();
   TextEditingController _ageController = TextEditingController();
   TextEditingController _bioController = TextEditingController();
+  TextEditingController cp = TextEditingController();
+  TextEditingController country = TextEditingController();
+  TextEditingController state = TextEditingController();
+  TextEditingController city = TextEditingController();
   File? image;
   final ImagePicker picker = ImagePicker();
 
   @override
-  void initState() {
+  void initState() async {
     super.initState();
+    await _fetchUserData();
     _nameController.text = widget.user!.displayName ?? '';
-    _fetchUserData();
+
+    city.text = city.text;
+    country.text = country.text;
   }
 
   Future<void> _fetchUserData() async {
@@ -40,6 +48,19 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (userSnapshot.exists) {
       Map<String, dynamic> userData =
           userSnapshot.data() as Map<String, dynamic>;
+
+      if (userData.containsKey('name')) {
+        _nameController.text = userData['name'].toString();
+      }
+      if (userData.containsKey('country')) {
+        country.text = userData['country'].toString();
+      }
+      if (userData.containsKey('city')) {
+        city.text = userData['city'].toString();
+      }
+      if (userData.containsKey('contactPerson')) {
+        cp.text = userData['contactPerson'].toString();
+      }
 
       if (userData.containsKey('age')) {
         _ageController.text = userData['age'].toString();
@@ -73,7 +94,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           FirebaseStorage.instance.ref(destination).putFile(image!);
       TaskSnapshot snapshot = await task;
 
-      // Get the download URL for the image
       String downloadUrl = await snapshot.ref.getDownloadURL();
       print(downloadUrl);
 
@@ -92,7 +112,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   void showDialogUploadImage(BuildContext context) {
-    String? selectedImagePath; // Variable to hold the selected image path
+    String? selectedImagePath;
 
     showDialog(
       context: context,
@@ -107,8 +127,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   selectedImagePath != null
                       ? Image.file(
                           File(selectedImagePath!),
-                          height: 100, // Set the desired height
-                          width: 100, // Set the desired width
+                          height: 100,
+                          width: 100,
                         )
                       : SizedBox(),
                   ElevatedButton(
@@ -147,12 +167,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 ),
                 TextButton(
                   onPressed: () {
-                    Navigator.of(context).pop(); // Close the dialog
+                    Navigator.of(context).pop();
                   },
                   child: Text("Close"),
                   style: ButtonStyle(
-                    foregroundColor: MaterialStateProperty.all<Color>(
-                        Colors.black), // Change the color here
+                    foregroundColor:
+                        MaterialStateProperty.all<Color>(Colors.black),
                   ),
                 ),
               ],
@@ -163,12 +183,72 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
+  void changeDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Change City and Country'),
+          content: CSCPicker(
+            defaultCountry: CscCountry.Indonesia,
+            onCountryChanged: (value) {
+              setState(() {
+                country.text = value;
+              });
+            },
+            onStateChanged: (value) {
+              setState(() {
+                state.text = value ?? '';
+              });
+            },
+            onCityChanged: (value) {
+              setState(() {
+                city.text = value ?? '';
+              });
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _extractCountryName(String fullCountry) {
+    // Remove the flag emoji from the country name
+    return fullCountry.replaceAll(RegExp(r'[^\x00-\x7F]+'), '').trim();
+  }
+
+  void _updateCityAndCountry(String newCity, String newCountry) {
+    setState(() {
+      city.text = newCity;
+      country.text = newCountry;
+    });
+  }
+
   void _submitForm(BuildContext context) async {
     if (_formKey.currentState!.validate()) {
       String uid = widget.user!.uid;
       String newName = _nameController.text;
       String newAge = _ageController.text;
       String newBio = _bioController.text;
+      String newCP = cp.text;
+      String newCountry = _extractCountryName(country.text);
+      String newCity = city.text;
+      print(newCountry);
+      print(newCity);
 
       await FirebaseFirestore.instance
           .collection('users')
@@ -177,6 +257,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
         'name': newName,
         'age': newAge,
         'bio': newBio,
+        'contactPerson': newCP,
+        'country': newCountry,
+        'city': newCity,
       });
 
       Navigator.pop(context);
@@ -190,110 +273,198 @@ class _EditProfilePageState extends State<EditProfilePage> {
         title: Text('Edit Profile'),
         backgroundColor: Color.fromARGB(255, 230, 0, 0),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              GestureDetector(
-                onTap: () {
-                  // Handle the click event here
-                  print('Clicked on CircleAvatar');
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Center(
-                    child: PopupMenuButton<int>(
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 1,
-                          child: Text('Upload Image'),
-                        ),
-                        PopupMenuItem(
-                          value: 2,
-                          child: Text('Delete Image'),
-                        ),
-                      ],
-                      onSelected: (value) {
-                        if (value == 1) {
-                          showDialogUploadImage(context);
-                          print('Upload Image');
-                        } else if (value == 2) {
-                          // Handle Delete Image option
-                          print('Delete Image');
-                        }
-                      },
-                      child: FutureBuilder<DocumentSnapshot>(
-                        future: FirebaseFirestore.instance
-                            .collection('users')
-                            .doc(widget.user!.email)
-                            .get(),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return CircularProgressIndicator(); // or some loading indicator
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    print('Clicked on CircleAvatar');
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Center(
+                      child: PopupMenuButton<int>(
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 1,
+                            child: Text('Upload Image'),
+                          ),
+                          PopupMenuItem(
+                            value: 2,
+                            child: Text('Delete Image'),
+                          ),
+                        ],
+                        onSelected: (value) {
+                          if (value == 1) {
+                            showDialogUploadImage(context);
+                            print('Upload Image');
+                          } else if (value == 2) {
+                            print('Delete Image');
                           }
-                          if (snapshot.hasError) {
-                            return Text('Error: ${snapshot.error}');
-                          }
-                          String? profileImageUrl =
-                              snapshot.data!['profileImageUrl'];
-                          return CircleAvatar(
-                            radius: 64,
-                            backgroundImage: profileImageUrl != null &&
-                                    profileImageUrl.isNotEmpty
-                                ? NetworkImage(profileImageUrl)
-                                : AssetImage('assets/images/defaultprofile.png')
-                                    as ImageProvider, // Cast to ImageProvider
-                          );
                         },
+                        child: FutureBuilder<DocumentSnapshot>(
+                          future: FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(widget.user!.email)
+                              .get(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return CircularProgressIndicator();
+                            }
+                            if (snapshot.hasError) {
+                              return Text('Error: ${snapshot.error}');
+                            }
+                            String? profileImageUrl =
+                                snapshot.data!['profileImageUrl'];
+                            return CircleAvatar(
+                              radius: 64,
+                              backgroundImage: profileImageUrl != null &&
+                                      profileImageUrl.isNotEmpty
+                                  ? NetworkImage(profileImageUrl)
+                                  : AssetImage(
+                                          'assets/images/defaultprofile.png')
+                                      as ImageProvider,
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              SizedBox(height: 20),
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(labelText: 'Name'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your name';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _ageController,
-                decoration: InputDecoration(labelText: 'Age'),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your age';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _bioController,
-                decoration: InputDecoration(labelText: 'Bio'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your bio';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () => _submitForm(context), // Fix is here
-                child: Text('Save Changes'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color.fromARGB(255, 230, 0, 0),
+                SizedBox(height: 20),
+                Padding(
+                  padding:
+                      const EdgeInsets.all(8.0), // Adjust the padding as needed
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '${city.text}, ${_extractCountryName(country.text)}',
+                            style: TextStyle(
+                              color: Colors.black,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => changeDialog(context),
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 8.0),
+                              child: Row(
+                                children: [
+                                  SizedBox(width: 8.0),
+                                  // Icon(Icons.edit, color: Colors.red),
+                                  Text(
+                                    "Change",
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  )
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16),
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: InputDecoration(
+                          labelText: 'Name',
+                          border: OutlineInputBorder(),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide:
+                                BorderSide(color: Colors.black, width: 2.0),
+                          ),
+                          labelStyle: TextStyle(color: Colors.black),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your name';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(
+                          height:
+                              16.0), // Add vertical spacing between TextFormField widgets
+                      TextFormField(
+                        controller: _ageController,
+                        decoration: InputDecoration(
+                          labelText: 'Age',
+                          border: OutlineInputBorder(),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide:
+                                BorderSide(color: Colors.black, width: 2.0),
+                          ),
+                          labelStyle: TextStyle(color: Colors.black),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your age';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 16.0),
+                      TextFormField(
+                        controller: _bioController,
+                        decoration: InputDecoration(
+                          labelText: 'Description',
+                          border: OutlineInputBorder(),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide:
+                                BorderSide(color: Colors.black, width: 2.0),
+                          ),
+                          labelStyle: TextStyle(color: Colors.black),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your bio';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 16.0),
+                      TextFormField(
+                        controller: cp,
+                        decoration: InputDecoration(
+                          labelText: 'Contact Person',
+                          border: OutlineInputBorder(),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide:
+                                BorderSide(color: Colors.black, width: 2.0),
+                          ),
+                          labelStyle: TextStyle(color: Colors.black),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your contact information';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () => _submitForm(context),
+                  child: Text('Save Changes'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color.fromARGB(255, 230, 0, 0),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

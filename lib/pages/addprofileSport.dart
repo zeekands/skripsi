@@ -8,6 +8,7 @@ class AddSportPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Add Sport'),
+        backgroundColor: Color.fromARGB(255, 230, 0, 0),
       ),
       body: SportList(),
     );
@@ -61,7 +62,11 @@ class SportList extends StatelessWidget {
 
                   return Card(
                     child: ListTile(
-                      leading: Image.network(sportImage),
+                      leading: Image.network(
+                        sportImage, height: 50, // Set your desired height
+                        width: 50, // Set your desired width
+                        fit: BoxFit.cover,
+                      ),
                       title: Text(sportName),
                       trailing: hasData
                           ? Icon(Icons.check, color: Colors.green)
@@ -138,6 +143,9 @@ class _RatingDialogState extends State<RatingDialog> {
               Navigator.of(context).pop();
             },
             child: Text('Save'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color.fromARGB(255, 230, 0, 0),
+            ),
           ),
         ],
       ),

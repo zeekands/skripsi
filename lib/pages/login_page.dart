@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:sportifyapp/pages/forgotpassword_page.dart';
 
 class LoginPage extends StatefulWidget {
   final VoidCallback onclickSignup;
@@ -31,84 +32,118 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Center(
-          child: Container(
-            padding: EdgeInsets.all(20),
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircleAvatar(
-                    radius: 120,
-                    backgroundImage:
-                        AssetImage('assets/images/sportify_logo.png'),
-                  ),
-                  SizedBox(height: 20),
-                  TextFormField(
-                    controller: emailLogin,
-                    textInputAction: TextInputAction.next,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: "Email",
-                      border: OutlineInputBorder(),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.black, width: 2.0),
-                      ),
-                      labelStyle: TextStyle(color: Colors.black),
+      body: Center(
+        child: SingleChildScrollView(
+          child: FractionallySizedBox(
+            widthFactor: 0.8,
+            child: Container(
+              padding: EdgeInsets.all(20),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircleAvatar(
+                      radius: 120,
+                      backgroundImage:
+                          AssetImage('assets/images/sportify_logo.png'),
                     ),
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    validator: (email) =>
-                        email != null && !EmailValidator.validate(email)
-                            ? "Enter a valid email"
-                            : null,
-                  ),
-                  SizedBox(height: 10),
-                  TextFormField(
-                    controller: passwordLogin,
-                    textInputAction: TextInputAction.done,
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      labelText: "Password",
-                      border: OutlineInputBorder(),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.black, width: 2.0),
-                      ),
-                      labelStyle: TextStyle(color: Colors.black),
-                    ),
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    validator: (value) => value != null && value.length < 6
-                        ? "Enter at least 6 characters"
-                        : null,
-                  ),
-                  SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: login,
-                    child: Text("Login"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color.fromARGB(255, 230, 0, 0),
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  RichText(
-                    text: TextSpan(
-                      style: TextStyle(color: Colors.grey),
-                      text: "Don't have an account? ",
-                      children: [
-                        TextSpan(
-                          recognizer: TapGestureRecognizer()
-                            ..onTap = widget.onclickSignup,
-                          text: "Sign Up",
-                          style: TextStyle(
-                            decoration: TextDecoration.underline,
-                            color: Color.fromARGB(255, 230, 0, 0),
-                          ),
+                    SizedBox(height: 20),
+                    TextFormField(
+                      controller: emailLogin,
+                      textInputAction: TextInputAction.next,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        labelText: "Email",
+                        border: OutlineInputBorder(),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide:
+                              BorderSide(color: Colors.black, width: 2.0),
                         ),
-                      ],
+                        labelStyle: TextStyle(color: Colors.black),
+                      ),
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      validator: (email) =>
+                          email != null && !EmailValidator.validate(email)
+                              ? "Enter a valid email"
+                              : null,
                     ),
-                  ),
-                ],
+                    SizedBox(height: 10),
+                    TextFormField(
+                      controller: passwordLogin,
+                      textInputAction: TextInputAction.done,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: "Password",
+                        border: OutlineInputBorder(),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide:
+                              BorderSide(color: Colors.black, width: 2.0),
+                        ),
+                        labelStyle: TextStyle(color: Colors.black),
+                      ),
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      validator: (value) => value != null && value.length < 6
+                          ? "Enter at least 6 characters"
+                          : null,
+                    ),
+                    SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: login,
+                      child: Text("Login"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color.fromARGB(255, 230, 0, 0),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    RichText(
+                      text: TextSpan(
+                        style: TextStyle(color: Colors.grey),
+                        text: "Don't have an account? ",
+                        children: [
+                          TextSpan(
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = widget.onclickSignup,
+                            text: "Sign Up",
+                            style: TextStyle(
+                              decoration: TextDecoration.underline,
+                              color: Color.fromARGB(255, 230, 0, 0),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    RichText(
+                      text: TextSpan(
+                        style: TextStyle(color: Colors.grey),
+                        children: [
+                          TextSpan(
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ResetPasswordPage(
+                                      onclickSignup: () {
+                                        // Add any additional functionality you need
+                                        // when the user taps the "Signup" link on the ResetPasswordPage.
+                                      },
+                                    ),
+                                  ),
+                                );
+                              },
+                            text: "Forgot Password",
+                            style: TextStyle(
+                              decoration: TextDecoration.underline,
+                              color: Color.fromARGB(255, 230, 0, 0),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

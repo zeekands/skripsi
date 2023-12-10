@@ -34,6 +34,29 @@ class _CommendationPageState extends State<CommendationPage> {
     );
   }
 
+  Future<String?> getActivitySport(String activityID) async {
+    try {
+      var activitySnapshot = await FirebaseFirestore.instance
+          .collection('activities')
+          .doc(activityID)
+          .get();
+
+      if (activitySnapshot.exists) {
+        var activityData = activitySnapshot.data() as Map<String, dynamic>;
+        var activitySport = activityData['sportName'] as String?;
+
+        return activitySport;
+      } else {
+        // Activity with the provided ID doesn't exist
+        return null;
+      }
+    } catch (e) {
+      // Handle any errors that occurred during the process
+      print('Error getting activity sport: $e');
+      return null;
+    }
+  }
+
   void _submitCommendations(String toUser, List<int> commendationCounts) async {
     int commendation1 = commendationCounts[0];
     int commendation2 = commendationCounts[1];
@@ -52,6 +75,7 @@ class _CommendationPageState extends State<CommendationPage> {
       print('You have already commended this user for this activity.');
       return;
     }
+    String? activitySport = await getActivitySport(widget.activityID);
 
     FirebaseFirestore.instance.collection('commendations').add({
       'toUser': toUser,
@@ -61,7 +85,26 @@ class _CommendationPageState extends State<CommendationPage> {
       'commendation2': commendation2,
       'commendation3': commendation3,
       'commendation4': commendation4,
+      'activitySport': activitySport ?? "",
     });
+  }
+
+  Future<bool> isUserCommended(String userEmail) async {
+    try {
+      // Check if commendation already exists
+      var commendationQuery = await FirebaseFirestore.instance
+          .collection('commendations')
+          .where('fromUser', isEqualTo: currentUserEmail)
+          .where('toUser', isEqualTo: userEmail)
+          .where('activity_id', isEqualTo: widget.activityID)
+          .get();
+
+      return commendationQuery.docs.isNotEmpty;
+    } catch (e) {
+      // Handle any errors that occurred during the process
+      print('Error checking commendation: $e');
+      return false;
+    }
   }
 
   @override
@@ -71,116 +114,137 @@ class _CommendationPageState extends State<CommendationPage> {
         title: Text('Give Commendation'),
         backgroundColor: Color.fromARGB(255, 230, 0, 0),
       ),
-      body: Column(
-        children: [
-          StreamBuilder(
-            stream: FirebaseFirestore.instance
-                .collection('participants')
-                .where('activity_id', isEqualTo: widget.activityID)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return CircularProgressIndicator();
-              }
+      body: SingleChildScrollView(
+        child: StreamBuilder(
+          stream: FirebaseFirestore.instance
+              .collection('participants')
+              .where('activity_id', isEqualTo: widget.activityID)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return CircularProgressIndicator();
+            }
 
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return Text('No participants found for this activity.');
-              }
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return Text('No participants found for this activity.');
+            }
 
-              var participants = snapshot.data!.docs;
+            var participants = snapshot.data!.docs;
 
-              return Column(
-                children: participants
-                    .map<Widget>((doc) {
-                      var userEmail = doc['user_email'];
+            return Column(
+              children: participants
+                  .map<Widget>((doc) {
+                    var userEmail = doc['user_email'];
 
-                      if (userEmail == currentUserEmail) {
-                        return SizedBox.shrink();
-                      }
-                      return FutureBuilder(
-                        future: FirebaseFirestore.instance
-                            .collection('users')
-                            .doc(userEmail)
-                            .get(),
-                        builder: (context, userSnapshot) {
-                          if (userSnapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return CircularProgressIndicator();
-                          }
+                    if (userEmail == currentUserEmail) {
+                      return SizedBox.shrink();
+                    }
+                    return FutureBuilder(
+                      future: FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(userEmail)
+                          .get(),
+                      builder: (context, userSnapshot) {
+                        if (userSnapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return CircularProgressIndicator();
+                        }
 
-                          if (!userSnapshot.hasData) {
-                            return Text('No user data found.');
-                          }
+                        if (!userSnapshot.hasData) {
+                          return Text('No user data found.');
+                        }
 
-                          var userData = userSnapshot.data!;
-                          var userName = userData['name'];
-                          var touserEmail = userSnapshot.data!.id;
-                          var profileImageUrl = userData['profileImageUrl'];
-                          var userAge = userData['age'];
+                        var userData = userSnapshot.data!;
+                        var userName = userData['name'];
+                        var touserEmail = userSnapshot.data!.id;
+                        var profileImageUrl = userData['profileImageUrl'];
+                        var userAge = userData['age'];
 
-                          return GestureDetector(
-                            onTap: () {
-                              _showCommendationDialog(context, touserEmail);
-                            },
-                            child: Card(
-                              margin: EdgeInsets.all(16.0),
-                              child: Padding(
-                                padding: EdgeInsets.all(16.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Container(
-                                          width: 50,
-                                          height: 50,
-                                          decoration: BoxDecoration(
-                                            image: DecorationImage(
-                                              image: profileImageUrl != null &&
-                                                      profileImageUrl.isNotEmpty
-                                                  ? NetworkImage(
-                                                      profileImageUrl)
-                                                  : AssetImage(
-                                                          'assets/images/defaultprofile.png')
-                                                      as ImageProvider,
-                                              fit: BoxFit.cover,
-                                            ),
-                                          ),
-                                        ),
-                                        SizedBox(width: 5),
-                                        Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.start,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              userName,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 20,
+                        return GestureDetector(
+                          onTap: () {
+                            _showCommendationDialog(context, touserEmail);
+                          },
+                          child: FutureBuilder(
+                            future: isUserCommended(touserEmail),
+                            builder: (context, isCommendedSnapshot) {
+                              if (isCommendedSnapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return CircularProgressIndicator();
+                              }
+
+                              var isCommended =
+                                  isCommendedSnapshot.data as bool? ?? false;
+
+                              return Card(
+                                margin: EdgeInsets.all(16.0),
+                                child: Padding(
+                                  padding: EdgeInsets.all(16.0),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            width: 50,
+                                            height: 50,
+                                            decoration: BoxDecoration(
+                                              image: DecorationImage(
+                                                image: profileImageUrl !=
+                                                            null &&
+                                                        profileImageUrl
+                                                            .isNotEmpty
+                                                    ? NetworkImage(
+                                                        profileImageUrl)
+                                                    : AssetImage(
+                                                            'assets/images/defaultprofile.png')
+                                                        as ImageProvider,
+                                                fit: BoxFit.cover,
                                               ),
                                             ),
-                                            SizedBox(height: 2),
-                                            Text(userAge),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                          ),
+                                          SizedBox(width: 5),
+                                          Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                userName,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 20,
+                                                ),
+                                              ),
+                                              SizedBox(height: 2),
+                                              Text(userAge),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                      // Display checklist icon if user is commended
+                                      isCommended
+                                          ? Icon(
+                                              Icons.check,
+                                              color: Colors.green,
+                                            )
+                                          : SizedBox.shrink(),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    })
-                    .where((widget) => widget != null)
-                    .toList(),
-              );
-            },
-          ),
-        ],
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    );
+                  })
+                  .where((widget) => widget != null)
+                  .toList(),
+            );
+          },
+        ),
       ),
     );
   }
@@ -230,13 +294,23 @@ class _CommendationDialogState extends State<CommendationDialog> {
                   widget.submitCommendations(commendationCounts);
                   Navigator.of(context).pop();
                 },
-                child: Text('Submit'),
+                child: Text(
+                  'Submit',
+                  style: TextStyle(
+                    color: Colors.black, // Set the text color to black
+                  ),
+                ),
               ),
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
-                child: Text('Cancel'),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: Colors.black, // Set the text color to black
+                  ),
+                ),
               ),
             ],
           ),
@@ -259,14 +333,14 @@ class _CommendationDialogState extends State<CommendationDialog> {
               Text(name),
               Image.asset(
                 'assets/images/$imageName',
-                width: 55,
-                height: 55,
+                width: 45,
+                height: 45,
                 fit: BoxFit.cover,
                 errorBuilder: (BuildContext context, Object error,
                     StackTrace? stackTrace) {
                   return Container(
-                    width: 80,
-                    height: 80,
+                    width: 70,
+                    height: 70,
                     color: Colors.red,
                     margin: EdgeInsets.all(5),
                   );

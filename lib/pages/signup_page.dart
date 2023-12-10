@@ -53,7 +53,9 @@ class _SignupPage extends State<SignupPage> {
         'city': cityValue,
         'profileImageUrl': "",
         'bio': "Tell us about yourself",
-        'user_type': 0
+        'contactPerson': "Input your contact information here!",
+        'user_type': 0,
+        'friends': [],
       };
 
       // Save additional data to Firebase Firestore (you should initialize Firebase Firestore in your app)
@@ -95,7 +97,14 @@ class _SignupPage extends State<SignupPage> {
                   controller: emailSignup,
                   textInputAction: TextInputAction.next,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(labelText: "Email"),
+                  decoration: InputDecoration(
+                    labelText: "Email",
+                    border: OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2.0),
+                    ),
+                    labelStyle: TextStyle(color: Colors.black),
+                  ),
                   autovalidateMode: AutovalidateMode.onUserInteraction,
                   validator: (email) =>
                       email != null && !EmailValidator.validate(email)
@@ -107,7 +116,14 @@ class _SignupPage extends State<SignupPage> {
                   controller: passwordSignup,
                   textInputAction: TextInputAction.next,
                   obscureText: true,
-                  decoration: InputDecoration(labelText: "Password"),
+                  decoration: InputDecoration(
+                    labelText: "Password",
+                    border: OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2.0),
+                    ),
+                    labelStyle: TextStyle(color: Colors.black),
+                  ),
                   autovalidateMode: AutovalidateMode.onUserInteraction,
                   validator: (value) => value != null && value.length < 6
                       ? "Enter at least 6 characters"
@@ -117,7 +133,14 @@ class _SignupPage extends State<SignupPage> {
                 TextFormField(
                   controller: nameSignup,
                   textInputAction: TextInputAction.next,
-                  decoration: InputDecoration(labelText: "Name"),
+                  decoration: InputDecoration(
+                    labelText: "Name",
+                    border: OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2.0),
+                    ),
+                    labelStyle: TextStyle(color: Colors.black),
+                  ),
                   autovalidateMode: AutovalidateMode.onUserInteraction,
                   validator: (name) =>
                       name != null && name.isEmpty ? "Enter your name" : null,
@@ -126,7 +149,14 @@ class _SignupPage extends State<SignupPage> {
                 TextFormField(
                   controller: ageSignup,
                   textInputAction: TextInputAction.next,
-                  decoration: InputDecoration(labelText: "Age"),
+                  decoration: InputDecoration(
+                    labelText: "Age",
+                    border: OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2.0),
+                    ),
+                    labelStyle: TextStyle(color: Colors.black),
+                  ),
                   keyboardType: TextInputType.number,
                   autovalidateMode: AutovalidateMode.onUserInteraction,
                   validator: (age) {
@@ -135,11 +165,13 @@ class _SignupPage extends State<SignupPage> {
                       if (ageValue == null || ageValue <= 0) {
                         return "Enter a valid age";
                       }
+                    } else {
+                      return "Enter your age";
                     }
                     return null;
                   },
                 ),
-                SizedBox(height: 50),
+                SizedBox(height: 20),
                 DropdownButtonFormField<String>(
                   value: selectedGender,
                   onChanged: (String? value) {
@@ -162,8 +194,9 @@ class _SignupPage extends State<SignupPage> {
                 ),
                 SizedBox(height: 10),
                 CSCPicker(
-                  layout: Layout.vertical,
-                  flagState: CountryFlag.DISABLE,
+                  // layout: Layout.vertical,
+                  // flagState: CountryFlag.DISABLE,
+                  defaultCountry: CscCountry.Indonesia,
                   onCountryChanged: (value) {
                     setState(() {
                       countryValue = value;

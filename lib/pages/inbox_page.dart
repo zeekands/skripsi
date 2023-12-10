@@ -130,7 +130,7 @@ class _InboxPageState extends State<InboxPage>
                   InboxTab(
                       category: 'Team', currentUserEmail: currentUserEmail),
                   InboxTab(
-                      category: 'Friends', currentUserEmail: currentUserEmail),
+                      category: 'Friend', currentUserEmail: currentUserEmail),
                 ],
               ),
             ),
@@ -283,13 +283,13 @@ class InboxTab extends StatelessWidget {
                                 style: TextStyle(fontSize: 24),
                               ),
                               CircleAvatar(
-                                backgroundImage: teamData['teamImageUrl'] !=
-                                            null &&
-                                        teamData['teamImageUrl'].isNotEmpty
-                                    ? NetworkImage(teamData['teamImageUrl'])
-                                    : AssetImage(
-                                            'assets/images/defaultprofile.png')
-                                        as ImageProvider,
+                                backgroundImage:
+                                    teamData['teamImageUrl'] != null &&
+                                            teamData['teamImageUrl'].isNotEmpty
+                                        ? NetworkImage(teamData['teamImageUrl'])
+                                        : AssetImage(
+                                                'assets/images/defaultTeam.png')
+                                            as ImageProvider,
                                 radius: 26,
                               ),
                             ],
@@ -305,7 +305,13 @@ class InboxTab extends StatelessWidget {
                       ),
                       actions: <Widget>[
                         TextButton(
-                          child: Text('Accept'),
+                          child: Text(
+                            'Accept',
+                            style: TextStyle(
+                              color:
+                                  Colors.black, // Set the text color to black
+                            ),
+                          ),
                           onPressed: () {
                             FirebaseFirestore.instance
                                 .collection('team_members')
@@ -323,7 +329,13 @@ class InboxTab extends StatelessWidget {
                           },
                         ),
                         TextButton(
-                          child: Text('Decline'),
+                          child: Text(
+                            'Decline',
+                            style: TextStyle(
+                              color:
+                                  Colors.black, // Set the text color to black
+                            ),
+                          ),
                           onPressed: () {
                             FirebaseFirestore.instance
                                 .collection('team_members')
@@ -342,7 +354,13 @@ class InboxTab extends StatelessWidget {
                           },
                         ),
                         TextButton(
-                          child: Text('Close'),
+                          child: Text(
+                            'Close',
+                            style: TextStyle(
+                              color:
+                                  Colors.black, // Set the text color to black
+                            ),
+                          ),
                           onPressed: () {
                             Navigator.of(context).pop();
                           },
@@ -443,7 +461,13 @@ class InboxTab extends StatelessWidget {
                       ),
                       actions: <Widget>[
                         TextButton(
-                          child: Text('Accept'),
+                          child: Text(
+                            'Accept',
+                            style: TextStyle(
+                              color:
+                                  Colors.black, // Set the text color to black
+                            ),
+                          ),
                           onPressed: () {
                             FirebaseFirestore.instance
                                 .collection('participants')
@@ -461,7 +485,13 @@ class InboxTab extends StatelessWidget {
                           },
                         ),
                         TextButton(
-                          child: Text('Decline'),
+                          child: Text(
+                            'Decline',
+                            style: TextStyle(
+                              color:
+                                  Colors.black, // Set the text color to black
+                            ),
+                          ),
                           onPressed: () {
                             FirebaseFirestore.instance
                                 .collection('participants')
@@ -480,7 +510,13 @@ class InboxTab extends StatelessWidget {
                           },
                         ),
                         TextButton(
-                          child: Text('Close'),
+                          child: Text(
+                            'Close',
+                            style: TextStyle(
+                              color:
+                                  Colors.black, // Set the text color to black
+                            ),
+                          ),
                           onPressed: () {
                             Navigator.of(context).pop();
                           },
@@ -551,6 +587,7 @@ class InboxTab extends StatelessWidget {
                 String teamSport = teamData['team_sport'];
                 String teamCreator = teamData['team_creator_email'];
                 String teamDes = teamData['team_description'];
+                int winCount = teamData['winCount'];
 
                 showDialog(
                   context: context,
@@ -573,6 +610,7 @@ class InboxTab extends StatelessWidget {
                                     teamCreator: teamCreator,
                                     teamImageUrl: teamImageUrl,
                                     teamDes: teamDes,
+                                    winCount: winCount,
                                   ),
                                 ),
                               );
@@ -605,7 +643,13 @@ class InboxTab extends StatelessWidget {
                       ),
                       actions: <Widget>[
                         TextButton(
-                          child: Text('Accept'),
+                          child: Text(
+                            'Accept',
+                            style: TextStyle(
+                              color:
+                                  Colors.black, // Set the text color to black
+                            ),
+                          ),
                           onPressed: () {
                             FirebaseFirestore.instance
                                 .collection('TournamentBracket')
@@ -623,7 +667,13 @@ class InboxTab extends StatelessWidget {
                           },
                         ),
                         TextButton(
-                          child: Text('Decline'),
+                          child: Text(
+                            'Decline',
+                            style: TextStyle(
+                              color:
+                                  Colors.black, // Set the text color to black
+                            ),
+                          ),
                           onPressed: () {
                             FirebaseFirestore.instance
                                 .collection('TournamentBracket')
@@ -642,7 +692,13 @@ class InboxTab extends StatelessWidget {
                           },
                         ),
                         TextButton(
-                          child: Text('Close'),
+                          child: Text(
+                            'Close',
+                            style: TextStyle(
+                              color:
+                                  Colors.black, // Set the text color to black
+                            ),
+                          ),
                           onPressed: () {
                             Navigator.of(context).pop();
                           },
@@ -669,6 +725,132 @@ class InboxTab extends StatelessWidget {
     }).catchError((error) {
       print('Error getting document: $error');
     });
+  }
+
+  void showFriendRequestDialog(
+      BuildContext context, String fromUserEmail, String notificationId) async {
+    try {
+      // Fetch user data using await
+      DocumentSnapshot userDocumentSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(fromUserEmail) // Use doc method to reference the document by ID
+          .get();
+
+      if (userDocumentSnapshot.exists) {
+        Map<String, dynamic> userData =
+            userDocumentSnapshot.data() as Map<String, dynamic>;
+        String profileImageUrl = userData['profileImageUrl'];
+        String profileName = userData['name'];
+
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Center(child: Text('Friend Request')),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircleAvatar(
+                    backgroundImage:
+                        profileImageUrl != null && profileImageUrl.isNotEmpty
+                            ? NetworkImage(profileImageUrl)
+                            : AssetImage('assets/images/defaultprofile.png')
+                                as ImageProvider,
+                    radius: 26,
+                  ),
+                  SizedBox(height: 8),
+                  Container(
+                    child: Text(
+                      '$profileName has sent you a friend request.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: Text(
+                    'Accept',
+                    style: TextStyle(
+                      color: Colors.black,
+                    ),
+                  ),
+                  onPressed: () async {
+                    String currentUserEmail =
+                        FirebaseAuth.instance.currentUser?.email ?? '';
+
+                    // Update the friend list for the sender (fromUserEmail)
+                    await FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(fromUserEmail)
+                        .update({
+                      'friends': FieldValue.arrayUnion([currentUserEmail])
+                    });
+
+                    // Update the friend list for the current user
+                    await FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(currentUserEmail)
+                        .update({
+                      'friends': FieldValue.arrayUnion([fromUserEmail])
+                    });
+
+                    // Handle friend request acceptance
+                    // Perform the necessary operations, e.g., update the friends list
+                    // and delete the notification
+                    // ...
+
+                    // Delete the notification
+                    await FirebaseFirestore.instance
+                        .collection('notifications')
+                        .doc(notificationId)
+                        .delete();
+
+                    Navigator.of(context).pop(); // Close the dialog
+                  },
+                ),
+                TextButton(
+                  child: Text(
+                    'Decline',
+                    style: TextStyle(
+                      color: Colors.black,
+                    ),
+                  ),
+                  onPressed: () async {
+                    // Handle friend request decline
+                    // Perform the necessary operations, e.g., delete the notification
+                    // ...
+
+                    // Delete the notification
+                    await FirebaseFirestore.instance
+                        .collection('notifications')
+                        .doc(notificationId)
+                        .delete();
+
+                    Navigator.of(context).pop(); // Close the dialog
+                  },
+                ),
+                TextButton(
+                  child: Text(
+                    'Close',
+                    style: TextStyle(
+                      color: Colors.black,
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        print('User document not found');
+      }
+    } catch (error) {
+      print('Error getting user document: $error');
+    }
   }
 
   @override
@@ -716,6 +898,8 @@ class InboxTab extends StatelessWidget {
             var teamMemberId = notificationData['teammemberid'];
             var participantId = notificationData['participantid'];
             var bracketId = notificationData['bracketid'];
+            var fromUserEmail = notificationData['from_user'];
+
             var notificationId = notifications[index].id;
 
             return Card(
@@ -736,6 +920,10 @@ class InboxTab extends StatelessWidget {
                       showActivityRequestDialog2(
                           context, bracketId, notificationId);
                     }
+                  }
+                  if (type == 'Request' && title == 'Friend') {
+                    showFriendRequestDialog(
+                        context, fromUserEmail, notificationId);
                   }
                 },
               ),

@@ -16,6 +16,11 @@ class _LocationManagementPageState extends State<LocationManagementPage> {
   String? stateValue = '';
   String? cityValue = '';
 
+  String _extractCountryName(String fullCountry) {
+    // Remove the flag emoji from the country name
+    return fullCountry.replaceAll(RegExp(r'[^\x00-\x7F]+'), '').trim();
+  }
+
   void _openCreateLocationMenu(BuildContext context) {
     TextEditingController venueController = TextEditingController();
     TextEditingController addressController = TextEditingController();
@@ -31,24 +36,22 @@ class _LocationManagementPageState extends State<LocationManagementPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
-                  controller: venueController,
-                  decoration: InputDecoration(
-                    labelText: 'Venue Name',
-                  ),
-                ),
-                SizedBox(height: 10),
-                TextField(
                   controller: addressController,
                   decoration: InputDecoration(
                     labelText: 'Address',
+                    border: OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2.0),
+                    ),
+                    labelStyle: TextStyle(color: Colors.black),
                   ),
                 ),
+                SizedBox(height: 10),
                 CSCPicker(
-                  layout: Layout.vertical,
-                  flagState: CountryFlag.DISABLE,
+                  defaultCountry: CscCountry.Indonesia,
                   onCountryChanged: (value) {
                     setState(() {
-                      countryValue = value;
+                      countryValue = _extractCountryName(value);
                     });
                   },
                   onStateChanged: (value) {
@@ -71,12 +74,10 @@ class _LocationManagementPageState extends State<LocationManagementPage> {
                 String venue = venueController.text;
                 String address = addressController.text;
 
-                if (venue.isNotEmpty &&
-                    address.isNotEmpty &&
+                if (address.isNotEmpty &&
                     cityValue != null &&
                     countryValue != null) {
                   _firestore.collection('locations').add({
-                    'locationVenue': venue,
                     'locationAddress': address,
                     'city': cityValue,
                     'country': countryValue,
@@ -93,12 +94,18 @@ class _LocationManagementPageState extends State<LocationManagementPage> {
                 }
               },
               child: Text('Create'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color.fromARGB(255, 230, 0, 0),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Close the dialog.
               },
               child: Text('Cancel'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color.fromARGB(255, 230, 0, 0),
+              ),
             ),
           ],
         );
@@ -113,7 +120,9 @@ class _LocationManagementPageState extends State<LocationManagementPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Location Management')),
+      appBar: AppBar(
+          title: Text('Location Management'),
+          backgroundColor: Color.fromARGB(255, 230, 0, 0)),
       body: Column(
         children: [
           StreamBuilder(
@@ -130,17 +139,15 @@ class _LocationManagementPageState extends State<LocationManagementPage> {
               for (var location in locations!) {
                 var locationData = location.data() as Map<String, dynamic>;
                 String locationId = location.id;
-                String venue = locationData['locationVenue'];
                 String address = locationData['locationAddress'];
                 String city = locationData['city'];
                 String country = locationData['country'];
 
                 var locationWidget = ListTile(
-                  title: Text('Venue: $venue'),
+                  title: Text('Address: $address'),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Address: $address'),
                       Text('City: $city'),
                       Text('Country: $country'),
                     ],
@@ -165,6 +172,7 @@ class _LocationManagementPageState extends State<LocationManagementPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openCreateLocationMenu(context),
         child: Icon(Icons.add),
+        backgroundColor: Color.fromARGB(255, 230, 0, 0),
       ),
     );
   }

@@ -133,7 +133,9 @@ Future<void> _showCreateTeamDialog(BuildContext context) async {
             children: [
               TextFormField(
                 controller: teamNameController,
-                decoration: InputDecoration(labelText: 'Team Name'),
+                decoration: InputDecoration(
+                  labelText: 'Team Name',
+                ),
               ),
               TextFormField(
                 controller: descriptionController,
@@ -151,13 +153,19 @@ Future<void> _showCreateTeamDialog(BuildContext context) async {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.black),
+              ),
             ),
             TextButton(
               onPressed: () async {
                 // Rest of the code remains the same
               },
-              child: Text('Create Team'),
+              child: Text(
+                'Create Team',
+                style: TextStyle(color: Colors.black),
+              ),
             ),
           ],
         );
@@ -174,6 +182,16 @@ class MyTeamTab extends StatefulWidget {
 class _MyTeamTabState extends State<MyTeamTab> {
   String selectedCategory = '';
   String? userEmail = FirebaseAuth.instance.currentUser?.email;
+  InputDecoration buildInputDecoration(String labelText) {
+    return InputDecoration(
+      labelText: labelText,
+      border: OutlineInputBorder(),
+      focusedBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.black, width: 2.0),
+      ),
+      labelStyle: TextStyle(color: Colors.black),
+    );
+  }
 
   void _showCreateTeamDialog(BuildContext context) {
     TextEditingController teamNameController = TextEditingController();
@@ -192,22 +210,36 @@ class _MyTeamTabState extends State<MyTeamTab> {
           return AlertDialog(
             title: Text('Create Team'),
             content: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                TextFormField(
-                  controller: teamNameController,
-                  decoration: InputDecoration(labelText: 'Team Name'),
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: TextFormField(
+                    controller: teamNameController,
+                    decoration: buildInputDecoration('Team Name'),
+                  ),
                 ),
-                TextFormField(
-                  controller: descriptionController,
-                  decoration: InputDecoration(labelText: 'Description'),
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: TextFormField(
+                    controller: descriptionController,
+                    decoration: buildInputDecoration('Description'),
+                  ),
                 ),
-                CategoryDropdown(
-                  onCategoryChanged: (category) {
-                    setState(() {
-                      selectedCategory = category;
-                    });
-                  },
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.black, width: 2.0),
+                      borderRadius: BorderRadius.circular(4.0),
+                    ),
+                    child: CategoryDropdown(
+                      onCategoryChanged: (category) {
+                        setState(() {
+                          selectedCategory = category;
+                        });
+                      },
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -216,7 +248,10 @@ class _MyTeamTabState extends State<MyTeamTab> {
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
-                child: Text('Cancel'),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.black),
+                ),
               ),
               TextButton(
                 onPressed: () async {
@@ -224,7 +259,6 @@ class _MyTeamTabState extends State<MyTeamTab> {
                   String description = descriptionController.text;
 
                   if (teamName.isNotEmpty && description.isNotEmpty) {
-                    // Check if the user already has a team for this category
                     QuerySnapshot teamQuery = await FirebaseFirestore.instance
                         .collection('teams')
                         .where('team_sport', isEqualTo: selectedCategory)
@@ -244,7 +278,10 @@ class _MyTeamTabState extends State<MyTeamTab> {
                                 onPressed: () {
                                   Navigator.of(context).pop();
                                 },
-                                child: Text('OK'),
+                                child: Text(
+                                  'OK',
+                                  style: TextStyle(color: Colors.black),
+                                ),
                               ),
                             ],
                           );
@@ -252,9 +289,8 @@ class _MyTeamTabState extends State<MyTeamTab> {
                       );
                       return;
                     } else {
-                      latestId++; // Increment the latest ID
+                      latestId++;
 
-                      // Save to Firestore
                       String teamId = latestId.toString();
                       FirebaseFirestore.instance
                           .collection('teams')
@@ -266,9 +302,9 @@ class _MyTeamTabState extends State<MyTeamTab> {
                         'team_sport': selectedCategory,
                         'team_creator_email': userEmail,
                         'teamImageUrl': "",
+                        'winCount': 0,
                       });
 
-                      // Update the latest ID in the collection
                       FirebaseFirestore.instance
                           .collection('latest_team_id')
                           .doc('latest_id')
@@ -282,7 +318,10 @@ class _MyTeamTabState extends State<MyTeamTab> {
                     }
                   }
                 },
-                child: Text('Create Team'),
+                child: Text(
+                  'Create Team',
+                  style: TextStyle(color: Colors.black),
+                ),
               ),
             ],
           );
@@ -368,6 +407,7 @@ class _MyTeamTabState extends State<MyTeamTab> {
                                 teamCreator: teamData['team_creator_email'],
                                 teamImageUrl: teamData!['teamImageUrl'],
                                 teamDes: teamData!['team_description'],
+                                winCount: teamData['winCount'],
                                 // Add more details as needed
                               ),
                             ),
@@ -533,6 +573,7 @@ class TabContent extends StatelessWidget {
                           teamCreator: teamData!['team_creator_email'],
                           teamImageUrl: teamData!['teamImageUrl'],
                           teamDes: teamData!['team_description'],
+                          winCount: teamData['winCount'],
                         ),
                       ),
                     );

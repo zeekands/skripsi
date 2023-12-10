@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
 import 'package:file_picker/file_picker.dart' as file_picker;
+import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
+import 'package:path/path.dart';
 
 class SportsManagementPage extends StatefulWidget {
   @override
@@ -17,6 +19,8 @@ class SportsManagementPageState extends State<SportsManagementPage> {
   String? uploadedImageUrl;
   PlatformFile? pickedFile;
   UploadTask? uploadTask;
+  File? image;
+  final ImagePicker picker = ImagePicker();
 
   Future selectedFile() async {
     final result = await FilePicker.platform.pickFiles();
@@ -51,26 +55,21 @@ class SportsManagementPageState extends State<SportsManagementPage> {
   }
 
   Future processUpload() async {
-    if (result != null) {
-      final fileBytes = result.files.first.bytes;
-      final fileName = result.files.first.name;
+    if (image == null) return;
+    final fileName = basename(image!.path);
+    final destination = 'sports/$fileName';
 
-      firebase_storage.Reference ref = firebase_storage.FirebaseStorage.instance
-          .ref()
-          .child('sports/$fileName');
+    try {
+      UploadTask task =
+          FirebaseStorage.instance.ref(destination).putFile(image!);
+      TaskSnapshot snapshot = await task;
 
-      final SettableMetadata metadata =
-          SettableMetadata(contentType: 'image/png');
-      var uploadTask = ref.putData(fileBytes!, metadata);
+      uploadedImageUrl = await snapshot.ref.getDownloadURL();
+      print(uploadedImageUrl);
 
-      var snapshot = await uploadTask.whenComplete(() {});
-
-      setState(() {});
-
-      uploadedImageUrl = await snapshot.ref.getDownloadURL() as String?;
-
-      String fileNameWithoutExtension = path.basenameWithoutExtension(fileName);
-      print('Uploaded Image URL: $uploadedImageUrl');
+      print('Image uploaded to Firebase');
+    } catch (e) {
+      print('Error uploading image: $e');
     }
   }
 
@@ -86,59 +85,118 @@ class SportsManagementPageState extends State<SportsManagementPage> {
     return s[0].toUpperCase() + s.substring(1).toLowerCase();
   }
 
+  Future<void> _uploadImage() async {
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    setState(() {
+      if (pickedFile != null) {
+        image = File(pickedFile.path);
+        uploadFile();
+      } else {
+        print('No image selected.');
+      }
+    });
+  }
+
   Future<void> addSport(BuildContext context) async {
     TextEditingController sportNameController = TextEditingController();
-    print(uploadedImageUrl);
+    String? selectedImagePath;
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Add Sport'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: sportNameController,
-                decoration: InputDecoration(labelText: 'Sport Name'),
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: Text('Add Sport'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: sportNameController,
+                    decoration: InputDecoration(
+                      labelText: 'Sport Name',
+                      border: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black, width: 2.0),
+                      ),
+                      labelStyle: TextStyle(color: Colors.black),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      selectedImagePath != null
+                          ? Image.file(
+                              File(selectedImagePath!),
+                              height: 100,
+                              width: 100,
+                            )
+                          : SizedBox(),
+                      ElevatedButton(
+                        onPressed: () async {
+                          final pickedFile = await picker.pickImage(
+                              source: ImageSource.gallery);
+
+                          if (pickedFile != null) {
+                            setState(() {
+                              selectedImagePath = pickedFile.path;
+                            });
+                          }
+                        },
+                        child: Text("Select Image"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color.fromARGB(255, 230, 0, 0),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () => uploadImage(context),
-                child: Text('Upload Image'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                String sportName = sportNameController.text;
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    String sportName = sportNameController.text;
+                    if (selectedImagePath != null) {
+                      image = File(selectedImagePath!);
+                      print(image);
+                      await processUpload();
+                      Navigator.of(context).pop();
+                    }
 
-                await processUpload();
-                if (sportName.isNotEmpty) {
-                  sportName = capitalizeFirst(sportName);
-                  DocumentReference newSportRef =
-                      FirebaseFirestore.instance.collection('sports').doc();
-                  print("upload " + uploadedImageUrl.toString());
+                    if (sportName.isNotEmpty) {
+                      sportName = capitalizeFirst(sportName);
+                      DocumentReference newSportRef =
+                          FirebaseFirestore.instance.collection('sports').doc();
+                      print("upload " + uploadedImageUrl.toString());
 
-                  newSportRef.set({
-                    'sport_id': newSportRef.id,
-                    'sport_name': sportName,
-                    'sport_image': uploadedImageUrl,
-                  });
+                      newSportRef.set({
+                        'sport_id': newSportRef.id,
+                        'sport_name': sportName,
+                        'sport_image': uploadedImageUrl,
+                      });
 
-                  Navigator.of(context).pop();
-                }
-              },
-              child: Text('Add Sport'),
-            ),
-          ],
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  child: Text(
+                    'Add Sport',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );

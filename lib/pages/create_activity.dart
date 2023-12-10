@@ -1,13 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:csc_picker/csc_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_places_flutter/google_places_flutter.dart';
-import 'package:google_places_flutter/model/prediction.dart';
 import 'package:intl/intl.dart';
 import 'package:sportifyapp/pages/myactivity_page.dart';
-
-import 'activity_detail.dart';
 
 class CreateActivityPage extends StatefulWidget {
   final String activityType;
@@ -36,6 +33,9 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
   TimeOfDay selectedTime = TimeOfDay.now();
   String? userEmail = FirebaseAuth.instance.currentUser?.email;
   bool isSubmitting = false;
+  String? selectedCountry;
+  String? selectedCity;
+  DateTime currentDate = DateTime.now();
 
   @override
   Future<void> showStatusDialog(String status) async {
@@ -47,11 +47,16 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
           content: Text(status),
           actions: <Widget>[
             TextButton(
-              child: Text('OK'),
+              child: Text(
+                'OK',
+                style: TextStyle(
+                  color: Colors.black, // Set the text color to black
+                ),
+              ),
               onPressed: () {
                 Navigator.of(context).pop(); // Close the dialog
               },
-            ),
+            )
           ],
         );
       },
@@ -62,7 +67,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: selectedDate,
-      firstDate: DateTime(2000),
+      firstDate: currentDate,
       lastDate: DateTime(2101),
     );
 
@@ -76,14 +81,15 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
   Future<void> registrationStartDate(BuildContext context) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: rStartDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
+      initialDate: rStartDate ?? currentDate,
+      firstDate: currentDate,
+      lastDate: selectedDate ?? DateTime(2101),
     );
 
     if (pickedDate != null && pickedDate != rStartDate) {
       setState(() {
         rStartDate = pickedDate;
+        rEndDate = pickedDate;
       });
     }
   }
@@ -91,9 +97,9 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
   Future<void> registrationEndDate(BuildContext context) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: rEndDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
+      initialDate: rStartDate,
+      firstDate: rStartDate ?? currentDate,
+      lastDate: selectedDate ?? DateTime(2101),
     );
 
     if (pickedDate != null && pickedDate != rEndDate) {
@@ -143,7 +149,6 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
         }
       }
 
-      // Add a new document with the custom ID
       int valueDate =
           int.parse(DateFormat('yyyyMMdd').format(selectedDate).toString());
       int valueRStartDate =
@@ -156,6 +161,8 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
         'activityType': widget.activityType,
         'sportName': selectedSport,
         'activityTitle': activityTitleController.text,
+        'activityCountry': selectedCountry,
+        'activityCity': selectedCity,
         'activityLocation': activityLocationController.text,
         'activityTime':
             '${padding(selectedTime.hour)}:${padding(selectedTime.minute)}',
@@ -203,7 +210,6 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
         ),
       );
     } catch (e) {
-      // Handle errors here
       print('Error adding activity: $e');
       await showStatusDialog('Error creating activity');
     }
@@ -317,8 +323,42 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
     return null;
   }
 
-  final _formKey = GlobalKey<FormState>();
+  String _extractCountryName(String fullCountry) {
+    // Remove the flag emoji from the country name
+    return fullCountry.replaceAll(RegExp(r'[^\x00-\x7F]+'), '').trim();
+  }
 
+  Future<List<String>> getLocationRecommendations(String city) async {
+    try {
+      QuerySnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore
+          .instance
+          .collection('locations')
+          .where('city', isEqualTo: city)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => doc['locationAddress'] as String)
+          .toList();
+    } catch (e) {
+      print('Error getting location recommendations: $e');
+      return [];
+    }
+  }
+
+  Future<void> _updateCity(String city) async {
+    setState(() {
+      selectedCity = city;
+    });
+
+    // Get location recommendations based on the selected city
+    locationRecommendations = await getLocationRecommendations(city);
+
+    // Display the recommendations or update your UI accordingly
+    print('Location Recommendations: $locationRecommendations');
+  }
+
+  final _formKey = GlobalKey<FormState>();
+  List<String> locationRecommendations = [];
   bool isPrivate = false;
 
   Widget build(BuildContext context) {
@@ -392,6 +432,8 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                     labelStyle: TextStyle(color: Colors.black),
                   ),
                   controller: activityTitleController,
+                  autovalidateMode:
+                      AutovalidateMode.onUserInteraction, // Add this line
                   validator: (value) {
                     if (value == null || value.isEmpty || value.length < 4) {
                       return 'Title must be at least 4 characters long.';
@@ -400,23 +442,71 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                   },
                 ),
               ),
+
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 8.0),
-                child: TextFormField(
-                  decoration: InputDecoration(
-                    labelText: 'Activity Location',
-                    border: OutlineInputBorder(),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black, width: 2.0),
-                    ),
-                    labelStyle: TextStyle(color: Colors.black),
-                  ),
-                  controller: activityLocationController,
-                  validator: (value) {
-                    if (value == null || value.isEmpty || value.length < 4) {
-                      return 'Location must be at least 4 characters long.';
+                child: CSCPicker(
+                  onCountryChanged: (country) {
+                    setState(() {
+                      selectedCountry = _extractCountryName(country);
+                    });
+                  },
+                  onStateChanged: (state) {},
+                  onCityChanged: (String? city) async {
+                    // Ensure that city is not null before proceeding
+                    if (city != null) {
+                      await _updateCity(city);
                     }
-                    return null;
+                  },
+                  defaultCountry: CscCountry.Indonesia,
+                ),
+              ),
+
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: Autocomplete<String>(
+                  optionsBuilder: (TextEditingValue textEditingValue) async {
+                    if (textEditingValue.text == '') {
+                      return const Iterable<String>.empty();
+                    }
+                    return locationRecommendations.where((String item) {
+                      return item.contains(textEditingValue.text.toLowerCase());
+                    });
+                  },
+                  onSelected: (String selectedLocation) {
+                    // Handle the selected location
+                    activityLocationController.text = selectedLocation;
+                  },
+                  fieldViewBuilder: (BuildContext context,
+                      TextEditingController fieldController,
+                      FocusNode fieldFocusNode,
+                      VoidCallback onFieldSubmitted) {
+                    return TextFormField(
+                      controller: fieldController,
+                      focusNode: fieldFocusNode,
+                      onChanged: (value) {
+                        // Update the activityLocationController when the text changes
+                        activityLocationController.text = value;
+                      },
+                      onFieldSubmitted: (value) => onFieldSubmitted(),
+                      decoration: InputDecoration(
+                        labelText: 'Activity Location',
+                        border: OutlineInputBorder(),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide:
+                              BorderSide(color: Colors.black, width: 2.0),
+                        ),
+                        labelStyle: TextStyle(color: Colors.black),
+                      ),
+                      validator: (value) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            value.length < 4) {
+                          return 'Location must be at least 4 characters long.';
+                        }
+                        return null;
+                      },
+                    );
                   },
                 ),
               ),

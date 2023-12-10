@@ -21,6 +21,7 @@ class ActivityTypeChoosePage extends StatelessWidget {
         primary: Colors.white,
         backgroundColor: Color.fromARGB(255, 230, 0, 0),
         side: BorderSide(color: Color.fromARGB(255, 230, 0, 0)),
+        minimumSize: Size(double.infinity, 0),
       ),
       child: Text(label),
     );

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:sportifyapp/pages/team_page.dart';
 
 import 'editteam_page.dart';
 import 'manageteam_page.dart';
@@ -13,6 +14,7 @@ class TeamDetailPage extends StatefulWidget {
   final String teamCreator;
   final String teamImageUrl;
   final String teamDes;
+  final int winCount;
 
   TeamDetailPage({
     required this.teamName,
@@ -21,6 +23,7 @@ class TeamDetailPage extends StatefulWidget {
     required this.teamCreator,
     required this.teamImageUrl,
     required this.teamDes,
+    required this.winCount,
   });
 
   @override
@@ -68,12 +71,11 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
 
     if (userEmail != null) {
       if (!isCurrentUserMember && !isCurrentUserAlreadyInTeam) {
-        // Send a request to join the team
         var teamMemberRef =
             await FirebaseFirestore.instance.collection('team_members').add({
           'team_id': widget.teamId,
           'user_email': userEmail,
-          'status': 'Pending', // Set an initial status
+          'status': 'Pending',
         });
 
         String teamMemberId = teamMemberRef.id;
@@ -96,7 +98,10 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
               content: Text('Your request to join has been sent.'),
               actions: <Widget>[
                 TextButton(
-                  child: Text('OK'),
+                  child: Text(
+                    'OK',
+                    style: TextStyle(color: Colors.black),
+                  ),
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
@@ -115,7 +120,10 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
                   'You are already a member of this team or have a team for this sport.'),
               actions: <Widget>[
                 TextButton(
-                  child: Text('OK'),
+                  child: Text(
+                    'OK',
+                    style: TextStyle(color: Colors.black),
+                  ),
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
@@ -153,10 +161,160 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
     );
   }
 
+  Future<void> disbandTeam() async {
+    try {
+      // Get the current user's email
+      var userEmail = FirebaseAuth.instance.currentUser?.email;
+
+      // Check if the user is the creator of the team
+      if (userEmail == widget.teamCreator) {
+        // Delete team members
+        await FirebaseFirestore.instance
+            .collection('team_members')
+            .where('team_id', isEqualTo: widget.teamId)
+            .get()
+            .then((querySnapshot) {
+          querySnapshot.docs.forEach((teamMemberDoc) {
+            teamMemberDoc.reference.delete();
+          });
+        });
+
+        // Delete team notifications
+        await FirebaseFirestore.instance
+            .collection('notifications')
+            .where('category', isEqualTo: 'Team')
+            .where('type', isEqualTo: 'Request')
+            .where('teammemberid', isEqualTo: widget.teamId.toString())
+            .get()
+            .then((querySnapshot) {
+          querySnapshot.docs.forEach((notificationDoc) {
+            notificationDoc.reference.delete();
+          });
+        });
+
+        // Delete the team document
+        await FirebaseFirestore.instance
+            .collection('teams')
+            .doc(widget.teamId.toString())
+            .delete();
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Team disbanded successfully.'),
+          ),
+        );
+
+        // Redirect to the home screen or any other desired screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => TeamPage(),
+          ),
+        );
+      } else {
+        // Show an error message if the current user is not the creator
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Only the team creator can disband the team.'),
+          ),
+        );
+      }
+    } catch (e) {
+      // Handle errors
+      print('Error disbanning team: $e');
+      // Show an error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An error occurred while disbanning the team.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> leaveTeam() async {
+    try {
+      var userEmail = FirebaseAuth.instance.currentUser?.email;
+
+      if (userEmail != null) {
+        // Find the document in team_members collection that corresponds to the current user and team
+        var querySnapshot = await FirebaseFirestore.instance
+            .collection('team_members')
+            .where('team_id', isEqualTo: widget.teamId)
+            .where('user_email', isEqualTo: userEmail)
+            .get();
+
+        if (querySnapshot.docs.isNotEmpty) {
+          // If the user is a member of the team, show a confirmation dialog
+          var leaveConfirmation = await showDialog<bool>(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text('Leave Team'),
+                content: Text('Are you sure you want to leave the team?'),
+                actions: <Widget>[
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: Colors.black, // Set the text color to black
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: Text(
+                      'Leave',
+                      style: TextStyle(
+                        color: Colors.black, // Set the text color to black
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+
+          if (leaveConfirmation == true) {
+            print('masuk');
+            // If the user confirms, delete the document
+            var documentId = querySnapshot.docs.first.id;
+            await FirebaseFirestore.instance
+                .collection('team_members')
+                .doc(documentId)
+                .delete();
+
+            // Show success message
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('You have left the team.'),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      // Handle errors
+      print('Error leaving team: $e');
+      // Show an error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An error occurred while leaving the team.'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     var userEmail = FirebaseAuth.instance.currentUser?.email;
     String? teamUrl = widget.teamImageUrl;
+    if (userEmail == null) {
+      // Handle the case where userEmail is null (e.g., user not logged in)
+      // You can redirect the user to the login page or display an appropriate message.
+      // For now, returning an empty Scaffold.
+      return Scaffold();
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text('Team Details'),
@@ -170,29 +328,45 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
                   editTeam();
                 } else if (value == 'manageMembers') {
                   ManageTeamMember();
-                } else if (value == 'Leaveteam') {
-                  // leaveTeam();
+                } else if (value == 'disbandTeam') {
+                  disbandTeam();
                 }
               },
               itemBuilder: (BuildContext context) {
-                if (userEmail == widget.teamCreator) {
-                  return {'edit', 'manageMembers'}.map((String choice) {
-                    return PopupMenuItem<String>(
-                      value: choice,
-                      child: Text(
-                          choice == 'edit' ? 'Edit Team' : 'Manage Members'),
-                    );
-                  }).toList();
-                } else {
-                  return {'Leaveteam'}.map((String choice) {
-                    return PopupMenuItem<String>(
-                      value: choice,
-                      child: Text(choice),
-                    );
-                  }).toList();
+                return {'edit', 'manageMembers', 'disbandTeam'}
+                    .map((String choice) {
+                  return PopupMenuItem<String>(
+                    value: choice,
+                    child: Text(
+                      choice == 'edit'
+                          ? 'Edit Team'
+                          : choice == 'manageMembers'
+                              ? 'Manage Members'
+                              : 'Disband Team',
+                    ),
+                  );
+                }).toList();
+              },
+            ),
+          if (isCurrentUserMember &&
+              userEmail !=
+                  widget
+                      .teamCreator) // Check if the current user is a member of the team
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'leaveTeam') {
+                  leaveTeam(); // Call the leaveTeam function
                 }
               },
-            )
+              itemBuilder: (BuildContext context) {
+                return {'leaveTeam'}.map((String choice) {
+                  return PopupMenuItem<String>(
+                    value: choice,
+                    child: Text(choice == 'leaveTeam' ? 'Leave Team' : ''),
+                  );
+                }).toList();
+              },
+            ),
         ],
       ),
       body: Padding(
@@ -217,6 +391,9 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
             Text('Team ID: ${widget.teamId}', style: TextStyle(fontSize: 16)),
             SizedBox(height: 10),
             Text('Team Sport: ${widget.teamSport}',
+                style: TextStyle(fontSize: 16)),
+            SizedBox(height: 10),
+            Text('Win Count: ${widget.winCount}',
                 style: TextStyle(fontSize: 16)),
             SizedBox(height: 20),
             Text(
@@ -337,23 +514,23 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
 
             // Display "Request to Join" button if the user is not a member
             if (!isCurrentUserMember)
-              Expanded(
-                child:
-                    SizedBox(), // This SizedBox will take all available space
-              ),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: requestToJoinTeam,
-                    child: Text('Request to Join'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color.fromARGB(255, 230, 0, 0),
+              // Expanded(
+              //   child:
+              //       SizedBox(), // This SizedBox will take all available space
+              // ),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: requestToJoinTeam,
+                      child: Text('Request to Join'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color.fromARGB(255, 230, 0, 0),
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
           ],
         ),
       ),

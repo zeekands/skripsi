@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sportifyapp/pages/activitylist_page.dart';
@@ -32,11 +34,47 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _currentIndex = 2; // Set the default tab to Home
+  int _currentIndex = 2;
+  var updateTime; // Set the default tab to Home
 
   void signUserOut() {
     FirebaseAuth.instance.signOut();
   }
+
+  // var ctr = 1;
+
+  // createTimer() {
+  //   final timer = Timer(
+  //     const Duration(minutes: 1),
+  //     () {
+  //       updateTime = TimeOfDay.now();
+  //       // Navigate to your favorite place
+  //       print(updateTime);
+  //       createTimer();
+  //     },
+  //   );
+  // }
+
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   print("Inside wx");
+  //   createTimer();
+  //   try {
+  //     print("abc");
+
+  //     /*
+  //     print("abc");
+  //     if (timer.isActive) {
+  //       print("active");
+  //     } else {
+  //       print("not active");
+  //     }*/
+  //   } catch (err) {
+  //     print("error");
+  //     print(err);
+  //   }
+  // }
 
   List<Widget> _pages = [
     MyActivityPage(),

@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sportifyapp/pages/editprofile_page.dart';
+import 'package:sportifyapp/pages/friendlist_page.dart';
 
 import 'addprofileSport.dart';
 import 'adminpanel_page.dart';
 import 'changepassword_page.dart';
+import 'detailSportUser_page.dart';
 
 class ProfilePage extends StatelessWidget {
   @override
@@ -38,6 +40,22 @@ class ProfilePage extends StatelessWidget {
       return urls;
     }
 
+    Future<List<Map<String, dynamic>>> getCommendationsData(
+        String? userEmail) async {
+      var commendationsData = await FirebaseFirestore.instance
+          .collection('commendations')
+          .where('toUser', isEqualTo: userEmail)
+          .get();
+
+      List<Map<String, dynamic>> commendations = [];
+
+      for (var doc in commendationsData.docs) {
+        commendations.add(doc.data() as Map<String, dynamic>);
+      }
+
+      return commendations;
+    }
+
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
           .collection('users')
@@ -57,12 +75,26 @@ class ProfilePage extends StatelessWidget {
             String? bio = userData['bio'];
             String? imageUrl = userData['profileImageUrl'];
             int? userType = userData['user_type'];
-
+            String? contactPerson = userData['contactPerson'];
             return Scaffold(
               appBar: AppBar(
                 backgroundColor: Colors.transparent,
                 elevation: 0,
-                title: Text('Profile'),
+                title: IconButton(
+                  icon: Icon(Icons
+                      .people), // Use Icons.people for the friend list icon
+                  onPressed: () {
+                    // Handle the friend list button press
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            FriendListPage(userEmail: user?.email),
+                      ),
+                    );
+                  },
+                  color: Colors.grey, // Set the icon color
+                ),
                 actions: [
                   IconButton(
                     icon: Icon(Icons.edit), // You can choose any icon you want
@@ -155,23 +187,84 @@ class ProfilePage extends StatelessWidget {
                             style: TextStyle(fontSize: 18),
                           ),
                           SizedBox(height: 5),
-                          Container(
-                            width: double.infinity,
-                            padding: EdgeInsets.symmetric(horizontal: 3.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                commendationImage(
-                                    'skillfull.png', 'Skillfull', 0),
-                                commendationImage(
-                                    'friendly.png', 'Positive', 0),
-                                commendationImage(
-                                    'teamplayer.png', 'Teamwork', 0),
-                                commendationImage(
-                                    'sportmanship.png', 'Sportsmanship', 0),
-                              ],
-                            ),
+                          Text(
+                            '$contactPerson',
+                            style: TextStyle(fontSize: 18),
                           ),
+                          SizedBox(height: 5),
+                          FutureBuilder<List<Map<String, dynamic>>>(
+                            future: getCommendationsData(user?.email ?? ''),
+                            builder: (
+                              BuildContext context,
+                              AsyncSnapshot<List<Map<String, dynamic>>>
+                                  commendationSnapshot,
+                            ) {
+                              if (commendationSnapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return CircularProgressIndicator();
+                              } else if (commendationSnapshot.hasError) {
+                                return Text(
+                                    'Error: ${commendationSnapshot.error}');
+                              } else {
+                                List<Map<String, dynamic>> commendations =
+                                    commendationSnapshot.data!;
+                                int totalCommendation1 = 0;
+                                int totalCommendation2 = 0;
+                                int totalCommendation3 = 0;
+                                int totalCommendation4 = 0;
+
+                                for (var commendationData in commendations) {
+                                  totalCommendation1 +=
+                                      commendationData['commendation1']
+                                              as int? ??
+                                          0;
+                                  totalCommendation2 +=
+                                      commendationData['commendation2']
+                                              as int? ??
+                                          0;
+                                  totalCommendation3 +=
+                                      commendationData['commendation3']
+                                              as int? ??
+                                          0;
+                                  totalCommendation4 +=
+                                      commendationData['commendation4']
+                                              as int? ??
+                                          0;
+                                }
+
+                                int count = commendations.length;
+
+                                // Calculate the average commendation for each type
+                                double averageCommendation1 = count > 0
+                                    ? totalCommendation1 / count
+                                    : 0.0;
+                                double averageCommendation2 = count > 0
+                                    ? totalCommendation2 / count
+                                    : 0.0;
+                                double averageCommendation3 = count > 0
+                                    ? totalCommendation3 / count
+                                    : 0.0;
+                                double averageCommendation4 = count > 0
+                                    ? totalCommendation4 / count
+                                    : 0.0;
+
+                                return Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceAround,
+                                  children: [
+                                    commendationImage('skillfull.png',
+                                        'Skillfull', averageCommendation1),
+                                    commendationImage('friendly.png',
+                                        'Positive', averageCommendation2),
+                                    commendationImage('teamplayer.png',
+                                        'Teamwork', averageCommendation3),
+                                    commendationImage('sportmanship.png',
+                                        'Sportsmanship', averageCommendation4),
+                                  ],
+                                );
+                              }
+                            },
+                          )
                         ],
                       ),
                     ),
@@ -255,48 +348,70 @@ class ProfilePage extends StatelessWidget {
                                           if (sportData != null) {
                                             var sportImage =
                                                 sportData['sport_image'];
-                                            return Card(
-                                              margin: EdgeInsets.all(16.0),
-                                              child: Padding(
-                                                padding: EdgeInsets.all(16.0),
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Row(
-                                                      children: [
-                                                        Container(
-                                                          width: 50,
-                                                          height: 50,
-                                                          child: Image.network(
-                                                              sportImage),
-                                                        ),
-                                                        SizedBox(width: 5),
-                                                        Column(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .start,
-                                                          crossAxisAlignment:
-                                                              CrossAxisAlignment
-                                                                  .start,
-                                                          children: [
-                                                            Text(
-                                                              selfRatingSport,
-                                                              style: TextStyle(
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold, // Makes the text bold
-                                                                fontSize:
-                                                                    20, // Adjust the font size as needed
-                                                              ),
-                                                            ),
-                                                            SizedBox(height: 2),
-                                                            Text(selfRating),
-                                                          ],
-                                                        ),
-                                                      ],
+                                            return GestureDetector(
+                                              onTap: () {
+                                                // Navigate to the detailSportUser_page when the card is tapped
+                                                if (user?.email != null) {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          DetailSportUserPage(
+                                                        userEmail: user!
+                                                            .email, // Non-nullable due to the check
+                                                        sportName:
+                                                            selfRatingSport,
+                                                      ),
                                                     ),
-                                                  ],
+                                                  );
+                                                }
+                                              },
+                                              child: Card(
+                                                margin: EdgeInsets.all(16.0),
+                                                child: Padding(
+                                                  padding: EdgeInsets.all(16.0),
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Row(
+                                                        children: [
+                                                          Container(
+                                                            width: 50,
+                                                            height: 50,
+                                                            child:
+                                                                Image.network(
+                                                                    sportImage),
+                                                          ),
+                                                          SizedBox(width: 5),
+                                                          Column(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .start,
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              Text(
+                                                                selfRatingSport,
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  fontSize: 20,
+                                                                ),
+                                                              ),
+                                                              SizedBox(
+                                                                  height: 2),
+                                                              Text(selfRating),
+                                                            ],
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
                                             );
@@ -328,7 +443,7 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget commendationImage(String imageName, String name, int number) {
+  Widget commendationImage(String imageName, String name, double number) {
     return Column(
       children: [
         Image.asset(
@@ -348,7 +463,7 @@ class ProfilePage extends StatelessWidget {
         ),
         Row(
           children: [
-            Text('$number'),
+            Text('${number.toStringAsFixed(1)}'),
             Image.asset(
               'assets/images/star.png',
               width: 20,
