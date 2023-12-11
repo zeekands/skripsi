@@ -30,13 +30,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final ImagePicker picker = ImagePicker();
 
   @override
-  void initState() async {
+  void initState() {
     super.initState();
-    await _fetchUserData();
+    _fetchUserData();
     _nameController.text = widget.user!.displayName ?? '';
 
-    city.text = city.text;
-    country.text = country.text;
+    print("test " + city.text);
   }
 
   Future<void> _fetchUserData() async {
@@ -285,7 +284,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     print('Clicked on CircleAvatar');
                   },
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(8.0),
                     child: Center(
                       child: PopupMenuButton<int>(
                         itemBuilder: (context) => [
@@ -321,138 +320,153 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             }
                             String? profileImageUrl =
                                 snapshot.data!['profileImageUrl'];
-                            return CircleAvatar(
-                              radius: 64,
-                              backgroundImage: profileImageUrl != null &&
-                                      profileImageUrl.isNotEmpty
-                                  ? NetworkImage(profileImageUrl)
-                                  : AssetImage(
-                                          'assets/images/defaultprofile.png')
-                                      as ImageProvider,
+                            return Column(
+                              children: [
+                                CircleAvatar(
+                                  radius: 64,
+                                  backgroundImage: profileImageUrl != null &&
+                                          profileImageUrl.isNotEmpty
+                                      ? NetworkImage(profileImageUrl)
+                                      : AssetImage(
+                                              'assets/images/defaultprofile.png')
+                                          as ImageProvider,
+                                ),
+                                SizedBox(height: 20),
+                                Padding(
+                                  padding: const EdgeInsets.all(
+                                      4.0), // Adjust the padding as needed
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            '${city.text}, ${_extractCountryName(country.text)}',
+                                            style: TextStyle(
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                          GestureDetector(
+                                            onTap: () => changeDialog(context),
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 8.0),
+                                              child: Row(
+                                                children: [
+                                                  SizedBox(width: 8.0),
+                                                  // Icon(Icons.edit, color: Colors.red),
+                                                  Text(
+                                                    "Change",
+                                                    style: TextStyle(
+                                                      color: Colors.red,
+                                                      decoration: TextDecoration
+                                                          .underline,
+                                                    ),
+                                                  )
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      SizedBox(height: 16),
+                                      TextFormField(
+                                        controller: _nameController,
+                                        decoration: InputDecoration(
+                                          labelText: 'Name',
+                                          border: OutlineInputBorder(),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Colors.black,
+                                                width: 2.0),
+                                          ),
+                                          labelStyle:
+                                              TextStyle(color: Colors.black),
+                                        ),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Please enter your name';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      SizedBox(
+                                          height:
+                                              16.0), // Add vertical spacing between TextFormField widgets
+                                      TextFormField(
+                                        controller: _ageController,
+                                        decoration: InputDecoration(
+                                          labelText: 'Age',
+                                          border: OutlineInputBorder(),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Colors.black,
+                                                width: 2.0),
+                                          ),
+                                          labelStyle:
+                                              TextStyle(color: Colors.black),
+                                        ),
+                                        keyboardType: TextInputType.number,
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Please enter your age';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      SizedBox(height: 16.0),
+                                      TextFormField(
+                                        controller: _bioController,
+                                        decoration: InputDecoration(
+                                          labelText: 'Description',
+                                          border: OutlineInputBorder(),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Colors.black,
+                                                width: 2.0),
+                                          ),
+                                          labelStyle:
+                                              TextStyle(color: Colors.black),
+                                        ),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Please enter your bio';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      SizedBox(height: 16.0),
+                                      TextFormField(
+                                        controller: cp,
+                                        decoration: InputDecoration(
+                                          labelText: 'Contact Person',
+                                          border: OutlineInputBorder(),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Colors.black,
+                                                width: 2.0),
+                                          ),
+                                          labelStyle:
+                                              TextStyle(color: Colors.black),
+                                        ),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Please enter your contact information';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             );
                           },
                         ),
                       ),
                     ),
-                  ),
-                ),
-                SizedBox(height: 20),
-                Padding(
-                  padding:
-                      const EdgeInsets.all(8.0), // Adjust the padding as needed
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            '${city.text}, ${_extractCountryName(country.text)}',
-                            style: TextStyle(
-                              color: Colors.black,
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => changeDialog(context),
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 8.0),
-                              child: Row(
-                                children: [
-                                  SizedBox(width: 8.0),
-                                  // Icon(Icons.edit, color: Colors.red),
-                                  Text(
-                                    "Change",
-                                    style: TextStyle(
-                                      color: Colors.red,
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                  )
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16),
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: InputDecoration(
-                          labelText: 'Name',
-                          border: OutlineInputBorder(),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide:
-                                BorderSide(color: Colors.black, width: 2.0),
-                          ),
-                          labelStyle: TextStyle(color: Colors.black),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your name';
-                          }
-                          return null;
-                        },
-                      ),
-                      SizedBox(
-                          height:
-                              16.0), // Add vertical spacing between TextFormField widgets
-                      TextFormField(
-                        controller: _ageController,
-                        decoration: InputDecoration(
-                          labelText: 'Age',
-                          border: OutlineInputBorder(),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide:
-                                BorderSide(color: Colors.black, width: 2.0),
-                          ),
-                          labelStyle: TextStyle(color: Colors.black),
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your age';
-                          }
-                          return null;
-                        },
-                      ),
-                      SizedBox(height: 16.0),
-                      TextFormField(
-                        controller: _bioController,
-                        decoration: InputDecoration(
-                          labelText: 'Description',
-                          border: OutlineInputBorder(),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide:
-                                BorderSide(color: Colors.black, width: 2.0),
-                          ),
-                          labelStyle: TextStyle(color: Colors.black),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your bio';
-                          }
-                          return null;
-                        },
-                      ),
-                      SizedBox(height: 16.0),
-                      TextFormField(
-                        controller: cp,
-                        decoration: InputDecoration(
-                          labelText: 'Contact Person',
-                          border: OutlineInputBorder(),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide:
-                                BorderSide(color: Colors.black, width: 2.0),
-                          ),
-                          labelStyle: TextStyle(color: Colors.black),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your contact information';
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
                   ),
                 ),
                 SizedBox(height: 20),

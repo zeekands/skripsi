@@ -40,6 +40,27 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
     setState(() {});
   }
 
+  Future<bool> isUserHost(String activityId) async {
+    User? currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser == null) {
+      return false;
+    }
+
+    DocumentSnapshot activitySnapshot = await FirebaseFirestore.instance
+        .collection('activities')
+        .doc(activityId)
+        .get();
+
+    if (!activitySnapshot.exists) {
+      return false;
+    }
+
+    String hostEmail = activitySnapshot.get('user_email');
+
+    return currentUser.email == hostEmail;
+  }
+
   void fetchTeamsAndPopulateBracket() {
     List<String> fetchedTeams = getTeamsForActivityId(widget.activityId);
 
@@ -85,6 +106,7 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
     var slot = team.slot;
     var remainder = allTeams[slot].length % 2;
     var lengthTeam = ((allTeams[slot].length - remainder) / 2) + remainder;
+
     List<Team> tempEmptyTeam = [];
 
     debugPrint('MAX NEXT TEAM LENGTH: ${lengthTeam.toInt()}');
@@ -93,20 +115,33 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
       try {
         var item = allTeams[slot + 1].length;
       } catch (err) {
-        debugPrint('err');
-        debugPrint("ADD WINNER ON NEXT ROUND");
-
+        // debugPrint('err');
+        // debugPrint("ADD WINNER ON NEXT ROUND");
+//fix
         if (teamIndex != 0) {
-          // fill empty
-          if (teamIndex > 0 && lengthTeam > 3) {
-            for (var i = 0; i < lengthTeam - 1; i++) {
-              tempEmptyTeam.add(
-                Team(id: 'empty', name: '', score: 0, slot: slot + 1),
-              );
+          if (remainder != 0) {
+            var teamslot = (teamIndex / 2).ceil();
+            if (teamIndex > 0 && teamslot > 0) {
+              for (var i = 0; i < teamslot; i++) {
+                tempEmptyTeam.add(
+                  Team(id: 'empty', name: '', score: 0, slot: slot + 1),
+                );
+              }
             }
+          } else {
+            var teamslot = (teamIndex / 2).floor();
           }
+          // fill empty
+          // if (teamIndex > 0 && lengthTeam > 3) {
+          //   for (var i = 0; i < lengthTeam - 1; i++) {
+          //     tempEmptyTeam.add(
+          //       Team(id: 'empty', name: '', score: 0, slot: slot + 1),
+          //     );
+          //   }
+          // }
         }
       }
+      //modify if data exist
 
       allTeams[team.slot][teamIndex] =
           Team(id: team.id, name: team.name, score: 0, slot: team.slot);
@@ -193,7 +228,6 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
   Widget inputScoreWidget(TextEditingController inputScore) {
     return Row(
       children: [
-        const Text('Score: '),
         const SizedBox(
           width: 5,
         ),
@@ -279,9 +313,13 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
                   height: 20,
                 ),
                 FutureBuilder(
-                  future: getIsWinner(team.name, team.slot.toString()),
+                  future: isUserHost(widget.activityId),
                   builder: (context, snapshot) {
+                    bool isUserHost = snapshot.data == true;
+                    print('Snapshot data: ${snapshot.data}');
+
                     if (snapshot.hasData) {
+                      print("isuer host $isUserHost");
                       return Column(
                         children: [
                           Row(
@@ -292,7 +330,7 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
                                 width: 10,
                               ),
                               Visibility(
-                                visible: snapshot.data == true ? false : true,
+                                visible: !isUserHost ? false : true,
                                 child: inputScoreWidget(inputScore),
                               ),
                             ],
@@ -301,7 +339,7 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
                             height: 20,
                           ),
                           Visibility(
-                            visible: snapshot.data == true ? false : true,
+                            visible: !isUserHost ? false : true,
                             child: ElevatedButton(
                               onPressed: () async {
                                 int score = inputScore.text.isEmpty
@@ -356,101 +394,116 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
           contentPadding: const EdgeInsets.only(top: 10.0),
           content: SizedBox(
             height: 200,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(
-                  height: 15,
-                ),
-                Text(
-                  "${teamA.name} vs ${teamB.name} ",
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                Row(
+            child: FutureBuilder(
+              future: isUserHost(widget.activityId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  // While the future is still being resolved, return a loading indicator or placeholder.
+                  return CircularProgressIndicator();
+                }
+
+                if (snapshot.hasError) {
+                  // If there's an error with the future, handle it accordingly.
+                  return Text('Error: ${snapshot.error}');
+                }
+
+                bool isUserHost = snapshot.data == true;
+
+                // Check if the user is a host or not.
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(
-                      width: 10,
+                      height: 15,
                     ),
-                    // Text(
-                    //   "${teamA.name} ",
-                    //   style: const TextStyle(
-                    //       fontSize: 16, fontWeight: FontWeight.bold),
-                    // ),
-                    inputScoreWidget(inputScoreA),
+                    Text(
+                      "${teamA.name} vs ${teamB.name} ",
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(
-                      width: 10,
+                      height: 20,
                     ),
-                    // Text(
-                    //   "${teamB.name} ",
-                    //   style: const TextStyle(
-                    //       fontSize: 16, fontWeight: FontWeight.bold),
-                    // ),
-                    inputScoreWidget(inputScoreB),
+                    Visibility(
+                      visible: isUserHost,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(
+                            width: 10,
+                          ),
+                          inputScoreWidget(inputScoreA),
+                          const SizedBox(
+                            width: 10,
+                          ),
+                          Text("vs"),
+                          inputScoreWidget(inputScoreB),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    Visibility(
+                      visible: isUserHost,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          int scoreA = inputScoreA.text.isEmpty
+                              ? 0
+                              : int.parse(inputScoreA.text);
+                          int scoreB = inputScoreB.text.isEmpty
+                              ? 0
+                              : int.parse(inputScoreB.text);
+                          var winner;
+                          if (scoreA > scoreB) {
+                            winner = teamA;
+                          }
+                          if (scoreB > scoreA) {
+                            winner = teamB;
+                          }
+                          saveWinner(winner);
+
+                          // update score team a
+                          var teamIndexA = allTeams[teamA.slot]
+                              .indexWhere((element) => element.id == teamA.id);
+                          debugPrint('team index a: $teamIndexA');
+                          allTeams[teamA.slot][teamIndexA] = Team(
+                            id: teamA.id,
+                            name: teamA.name,
+                            score: scoreA,
+                            slot: teamA.slot,
+                          );
+
+                          // update score team b
+                          var teamIndexB = allTeams[teamB.slot]
+                              .indexWhere((element) => element.id == teamB.id);
+                          allTeams[teamB.slot][teamIndexB] = Team(
+                            id: teamB.id,
+                            name: teamB.name,
+                            score: scoreB,
+                            slot: teamB.slot,
+                          );
+                          setIsWinner(teamA.name, teamA.slot.toString());
+                          setIsWinner(teamB.name, teamB.slot.toString());
+
+                          updateToFirebase();
+                        },
+                        child: const Text('Save'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color.fromARGB(255, 230, 0, 0),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 15,
+                    ),
                   ],
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    int scoreA = inputScoreA.text.isEmpty
-                        ? 0
-                        : int.parse(inputScoreA.text);
-                    int scoreB = inputScoreB.text.isEmpty
-                        ? 0
-                        : int.parse(inputScoreB.text);
-                    var winner;
-                    if (scoreA > scoreB) {
-                      winner = teamA;
-                    }
-                    if (scoreB > scoreA) {
-                      winner = teamB;
-                    }
-                    saveWinner(winner);
-
-                    // update score team a
-
-                    var teamIndexA = allTeams[teamA.slot]
-                        .indexWhere((element) => element.id == teamA.id);
-                    debugPrint('team index a: $teamIndexA');
-                    allTeams[teamA.slot][teamIndexA] = Team(
-                        id: teamA.id,
-                        name: teamA.name,
-                        score: scoreA,
-                        slot: teamA.slot);
-
-                    // update score team b
-
-                    var teamIndexB = allTeams[teamB.slot]
-                        .indexWhere((element) => element.id == teamB.id);
-                    allTeams[teamB.slot][teamIndexB] = Team(
-                        id: teamB.id,
-                        name: teamB.name,
-                        score: scoreB,
-                        slot: teamB.slot);
-                    setIsWinner(teamA.name, teamA.slot.toString());
-                    setIsWinner(teamB.name, teamB.slot.toString());
-
-                    updateToFirebase();
-
-                    // Navigator.pop(context);
-                  },
-                  child: const Text('Save'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color.fromARGB(255, 230, 0, 0),
-                  ),
-                ),
-                const SizedBox(
-                  height: 15,
-                ),
-              ],
+                );
+              },
             ),
           ),
         );
@@ -552,7 +605,8 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
       collection.doc(widget.activityId).set({
         'match': [
           {'round_0': teamsToDb},
-        ]
+        ],
+        'isShuffled': 0,
       });
 
       setIsShuffled();
@@ -650,12 +704,13 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
             child: SizedBox(
               height: 40,
               child: FutureBuilder(
-                future: getIsShuffled(),
+                future: isUserHost(widget.activityId),
                 builder: (context, snapshot) {
                   if (snapshot.hasData) {
                     debugPrint('status ${snapshot.data}');
+                    bool userIsHost = snapshot.data ?? false;
                     return Visibility(
-                      visible: snapshot.data == true ? false : true,
+                      visible: userIsHost,
                       child: ElevatedButton(
                         onPressed: shuffleBracketAndSave,
                         style: ElevatedButton.styleFrom(

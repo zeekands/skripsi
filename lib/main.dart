@@ -14,9 +14,10 @@ void main() async {
   );
   await FirebaseFirestore.instance.settings;
   runApp(
-    const MaterialApp(
+    MaterialApp(
       title: "Sportify",
       home: myApp(),
+      theme: ThemeData(primarySwatch: Colors.red),
       debugShowCheckedModeBanner: false,
     ),
   );
