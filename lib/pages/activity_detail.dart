@@ -1249,49 +1249,56 @@ class ActivityDetailsPage extends StatelessWidget {
                                     }
                                     return SizedBox(
                                       height: 30,
-                                      child: ElevatedButton(
-                                        onPressed: () {
-                                          if (activity['activityisPrivate'] ==
-                                                  true &&
-                                              activity['activityType'] ==
-                                                  "Normal Activity") {
-                                            requestToJoinActivity(
-                                              context,
-                                              activityID,
-                                              userEmail!,
-                                              activity['user_email'],
-                                            );
-                                            print("private dan normal");
-                                          } else if (activity[
-                                                      'activityisPrivate'] ==
-                                                  true &&
-                                              (activity['activityType'] ==
-                                                      "Tournament" ||
-                                                  activity['activityType'] ==
-                                                      "Sparring")) {
-                                            addTournamentBracket(
-                                              context,
-                                              userEmail!,
-                                              activity['sportName'],
-                                              activityID,
-                                              activity['user_email'],
-                                            );
-                                          } else {
-                                            addParticipant(context, activityID,
-                                                userEmail!);
-                                          }
-                                        },
-                                        child: Text(
-                                          activity['activityisPrivate'] == true
-                                              ? 'Request to Join'
-                                              : 'Join Activity',
-                                        ),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              Color.fromARGB(255, 230, 0, 0),
-                                          minimumSize: Size(double.infinity, 0),
-                                        ),
-                                      ),
+                                      child: activity['activityStatus'] ==
+                                              'Waiting'
+                                          ? ElevatedButton(
+                                              onPressed: () {
+                                                if (activity[
+                                                            'activityisPrivate'] ==
+                                                        true &&
+                                                    activity['activityType'] ==
+                                                        "Normal Activity") {
+                                                  requestToJoinActivity(
+                                                    context,
+                                                    activityID,
+                                                    userEmail!,
+                                                    activity['user_email'],
+                                                  );
+                                                  print("private dan normal");
+                                                } else if (activity[
+                                                            'activityisPrivate'] ==
+                                                        true &&
+                                                    (activity['activityType'] ==
+                                                            "Tournament" ||
+                                                        activity[
+                                                                'activityType'] ==
+                                                            "Sparring")) {
+                                                  addTournamentBracket(
+                                                    context,
+                                                    userEmail!,
+                                                    activity['sportName'],
+                                                    activityID,
+                                                    activity['user_email'],
+                                                  );
+                                                } else {
+                                                  addParticipant(context,
+                                                      activityID, userEmail!);
+                                                }
+                                              },
+                                              child: Text(
+                                                activity['activityisPrivate'] ==
+                                                        true
+                                                    ? 'Request to Join'
+                                                    : 'Join Activity',
+                                              ),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Color.fromARGB(
+                                                    255, 230, 0, 0),
+                                                minimumSize:
+                                                    Size(double.infinity, 0),
+                                              ),
+                                            )
+                                          : Container(), // If activityStatus is not 'Waiting', return an empty container.
                                     );
                                   }
                                 },

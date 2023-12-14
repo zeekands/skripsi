@@ -148,7 +148,7 @@ class ManageActivityPage extends StatelessWidget {
                     if (activityType == 'Normal Activity') {
                       deleteParticipant(activityID, userEmail);
                     } else if (activityType == 'Tournament') {
-                      // deleteTournamentParticipant(activityID, userEmail);
+                      deleteSparringParticipant(activityID, teamID);
                     } else if (activityType == 'Sparring') {
                       deleteSparringParticipant(activityID, teamID);
                     }

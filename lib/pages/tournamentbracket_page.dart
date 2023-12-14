@@ -211,7 +211,6 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
       } catch (err) {
         // debugPrint('err');
         // debugPrint("ADD WINNER ON NEXT ROUND");
-//fix
         if (teamIndex != 0) {
           if (remainder != 0 && lengthTeam > 2) {
             var teamslot = (teamIndex / 2).ceil();
@@ -283,8 +282,15 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
             }
 
             if (teamIndex > 0) {
-              allTeams[slot + 1][lengthTeam.toInt() - 2] =
-                  Team(id: team.id, name: team.name, score: 0, slot: slot + 1);
+              if (remainder != 0 && lengthTeam > 2) {
+                var teamslot = (teamIndex / 2).ceil();
+                allTeams[slot + 1][teamslot] = Team(
+                    id: team.id, name: team.name, score: 0, slot: slot + 1);
+              } else {
+                var teamslot = (teamIndex / 2).floor();
+                allTeams[slot + 1][teamslot] = Team(
+                    id: team.id, name: team.name, score: 0, slot: slot + 1);
+              }
             }
 
             updateToFirebase();
@@ -294,13 +300,13 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
 
           if (allTeams[slot + 1][teamIndex - 1].id.isNotEmpty) {
             debugPrint('TEAM INDEX: $teamIndex');
-            // if (teamIndex > 0) {
-            //   allTeams[slot + 1][teamIndex - 1] = Team(
-            //       id: team.id,
-            //       name: team.name,
-            //       score: team.score,
-            //       slot: slot + 1);
-            // }
+            if (teamIndex > 0) {
+              allTeams[slot + 1][teamIndex - 1] = Team(
+                  id: team.id,
+                  name: team.name,
+                  score: team.score,
+                  slot: slot + 1);
+            }
           }
         } catch (err, stack) {
           debugPrint('err disini $stack');
