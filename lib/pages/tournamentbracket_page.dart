@@ -29,14 +29,14 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
 
   List<List<Team>> allTeams = [];
 
-  bool isShuffled = false;
+  bool test = false;
 
   @override
   void initState() {
     super.initState();
     debugPrint('id: ${widget.activityId}');
     fetchTournamentBracketData();
-    debugPrint('IS SHUFFLED : $isShuffled');
+    debugPrint('IS SHUFFLED : $test');
     setState(() {});
   }
 
@@ -61,6 +61,35 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
     return currentUser.email == hostEmail;
   }
 
+  Future<bool> bracketCanShuffle(String activityId) async {
+    // Check if the user is the host
+    bool userIsHost = await isUserHost(activityId);
+    if (!userIsHost) {
+      return false; // User is not the host, cannot shuffle
+    }
+
+    try {
+      // Query the matchup_bracket collection
+      DocumentSnapshot bracketSnapshot = await FirebaseFirestore.instance
+          .collection('matchup_bracket')
+          .doc(activityId)
+          .get();
+
+      if (!bracketSnapshot.exists) {
+        return true; // Bracket doesn't exist, allow shuffling
+      }
+
+      // Check the value of isShuffled
+      bool isShuffled = bracketSnapshot.get('isShuffled') ?? false;
+
+      return !isShuffled; // Return true if not shuffled, false otherwise
+    } catch (e) {
+      // Handle any potential errors
+      print('Error checking if bracket can shuffle: $e');
+      return false;
+    }
+  }
+
   void fetchTeamsAndPopulateBracket() {
     List<String> fetchedTeams = getTeamsForActivityId(widget.activityId);
 
@@ -71,11 +100,49 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
   }
 
   initShuffle() async {
-    isShuffled = await getIsShuffled();
+    test = await getIsShuffled();
     setState(() {});
   }
 
-  updateToFirebase() {
+  refreshBracket() async {
+    DocumentSnapshot documentSnapshot = await FirebaseFirestore.instance
+        .collection('matchup_bracket')
+        .doc(widget.activityId)
+        .get();
+    if (documentSnapshot.exists) {
+      Map<String, dynamic> data =
+          documentSnapshot.data() as Map<String, dynamic>? ?? {};
+      List<dynamic> matchList = data['match'] as List<dynamic>? ?? [];
+
+      if (matchList.isNotEmpty) {
+        var matchAtIndex0 = matchList[0] as Map<String, dynamic>;
+
+        dynamic fieldValue = matchAtIndex0;
+        List<dynamic> updatedTeams = fieldValue['round_0'].map((team) {
+          return {
+            'score': 0,
+            'name': team['name'],
+            'id': team['id'],
+            'slot': team['slot'],
+          };
+        }).toList();
+
+        fieldValue['round_0'] = updatedTeams;
+        var collection =
+            FirebaseFirestore.instance.collection('matchup_bracket');
+
+        collection.doc(widget.activityId).set({
+          'match': [fieldValue],
+          'isShuffled': test
+        });
+        // print('Value at index 0: $fieldValue');
+      } else {
+        print('No elements in the match list');
+      }
+    }
+  }
+
+  updateToFirebase() async {
     var teamsToUpdate = [];
     for (var i = 0; i < allTeams.length; i++) {
       List<dynamic> teamsToDb = [];
@@ -89,13 +156,40 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
               .toJson(),
         );
       }
+
       teamsToUpdate.add({'round_$i': teamsToDb});
     }
 
     debugPrint('data: ${json.encode(teamsToUpdate)}');
 
     var collection = FirebaseFirestore.instance.collection('matchup_bracket');
-    collection.doc(widget.activityId).set({'match': teamsToUpdate});
+    DocumentSnapshot documentSnapshot = await FirebaseFirestore.instance
+        .collection('matchup_bracket')
+        .doc(widget.activityId)
+        .get();
+    if (documentSnapshot.exists) {
+      // Retrieve the value of 'isShuffled' from the document data
+      Map<String, dynamic> data =
+          documentSnapshot.data() as Map<String, dynamic>? ?? {};
+      bool? isShuffled = data['isShuffled'] as bool?;
+
+      // Use the value of 'isShuffled' as needed
+      print('isShuffled: $isShuffled');
+      if (isShuffled == true) {
+        test = true;
+        print('tes bool$test');
+      } else {
+        test = false;
+        print('tes bool$test');
+      }
+    } else {
+      print('Document does not exist');
+    }
+
+    print('ttttttt $collection');
+    collection
+        .doc(widget.activityId)
+        .set({'match': teamsToUpdate, 'isShuffled': test});
   }
 
   saveWinner(Team team) {
@@ -119,7 +213,7 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
         // debugPrint("ADD WINNER ON NEXT ROUND");
 //fix
         if (teamIndex != 0) {
-          if (remainder != 0) {
+          if (remainder != 0 && lengthTeam > 2) {
             var teamslot = (teamIndex / 2).ceil();
             if (teamIndex > 0 && teamslot > 0) {
               for (var i = 0; i < teamslot; i++) {
@@ -130,6 +224,13 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
             }
           } else {
             var teamslot = (teamIndex / 2).floor();
+            if (teamIndex > 0 && teamslot > 0) {
+              for (var i = 0; i < teamslot; i++) {
+                tempEmptyTeam.add(
+                  Team(id: 'empty', name: '', score: 0, slot: slot + 1),
+                );
+              }
+            }
           }
           // fill empty
           // if (teamIndex > 0 && lengthTeam > 3) {
@@ -182,7 +283,7 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
             }
 
             if (teamIndex > 0) {
-              allTeams[slot + 1][lengthTeam.toInt() - 1] =
+              allTeams[slot + 1][lengthTeam.toInt() - 2] =
                   Team(id: team.id, name: team.name, score: 0, slot: slot + 1);
             }
 
@@ -203,16 +304,21 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
           }
         } catch (err, stack) {
           debugPrint('err disini $stack');
-          // allTeams[slot + 1][teamIndex - 1] = Team(
-          //     id: team.id, name: team.name, score: team.score, slot: slot + 1);
+          if (teamIndex == 0) {
+            allTeams[slot + 1][teamIndex] = Team(
+                id: team.id,
+                name: team.name,
+                score: team.score,
+                slot: slot + 1);
+          } else {
+            debugPrint(
+                "ADD WINNER ON NEXT ROUND AFTER INSERT FIRST slot ${json.encode(allTeams[1])}");
+
+            allTeams[slot + 1].add(
+                Team(id: team.id, name: team.name, score: 0, slot: slot + 1));
+          }
           // return;
         }
-
-        debugPrint(
-            "ADD WINNER ON NEXT ROUND AFTER INSERT FIRST slot ${json.encode(allTeams[1])}");
-
-        allTeams[slot + 1]
-            .add(Team(id: team.id, name: team.name, score: 0, slot: slot + 1));
 
         // updateToFirebase();
       }
@@ -606,7 +712,7 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
         'match': [
           {'round_0': teamsToDb},
         ],
-        'isShuffled': 0,
+        'isShuffled': false,
       });
 
       setIsShuffled();
@@ -684,6 +790,21 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
     );
   }
 
+  Future<void> updateIsShuffled(String activityId) async {
+    try {
+      // Update the isShuffled field in the matchup_bracket collection
+      await FirebaseFirestore.instance
+          .collection('matchup_bracket')
+          .doc(activityId)
+          .set({'isShuffled': true}, SetOptions(merge: true));
+
+      print('isShuffled updated successfully.');
+    } catch (e) {
+      // Handle any potential errors
+      print('Error updating isShuffled: $e');
+    }
+  }
+
   @override
   void didUpdateWidget(covariant TournamentBracketPage oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -694,6 +815,23 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tournament Bracket'),
+        actions: [
+          FutureBuilder<bool>(
+            future: isUserHost(widget.activityId),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data == true) {
+                return IconButton(
+                  onPressed: () {
+                    // Call the refreshBracket function when the button is pressed
+                    refreshBracket();
+                  },
+                  icon: Icon(Icons.refresh),
+                );
+              }
+              return Container(); // or you can return an empty SizedBox for spacing
+            },
+          ),
+        ],
         backgroundColor: const Color.fromARGB(255, 230, 0, 0),
       ),
       body: Column(
@@ -704,22 +842,42 @@ class _TournamentBracketPageState extends State<TournamentBracketPage> {
             child: SizedBox(
               height: 40,
               child: FutureBuilder(
-                future: isUserHost(widget.activityId),
+                future: bracketCanShuffle(widget.activityId),
                 builder: (context, snapshot) {
                   if (snapshot.hasData) {
                     debugPrint('status ${snapshot.data}');
                     bool userIsHost = snapshot.data ?? false;
                     return Visibility(
                       visible: userIsHost,
-                      child: ElevatedButton(
-                        onPressed: shuffleBracketAndSave,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromARGB(255, 230, 0, 0),
-                        ),
-                        child: const Text(
-                          'Shuffle Bracket',
-                          style: TextStyle(color: Colors.white),
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ElevatedButton(
+                            onPressed: shuffleBracketAndSave,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  const Color.fromARGB(255, 230, 0, 0),
+                            ),
+                            child: const Text(
+                              'Shuffle Bracket',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                          SizedBox(width: 10), // Adjust the spacing as needed
+                          ElevatedButton(
+                            onPressed: () {
+                              updateIsShuffled(widget.activityId);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  const Color.fromARGB(255, 230, 0, 0),
+                            ),
+                            child: const Text(
+                              'Save',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   }

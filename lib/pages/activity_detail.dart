@@ -558,6 +558,115 @@ class ActivityDetailsPage extends StatelessWidget {
     }
   }
 
+  Future<void> cancelJoinTournamentSparring(
+      BuildContext context,
+      String userEmail,
+      String sportName,
+      String activityID,
+      String CreatorEmail) async {
+    try {
+      CollectionReference teams =
+          FirebaseFirestore.instance.collection('teams');
+      QuerySnapshot teamSnapshot = await teams
+          .where('team_creator_email', isEqualTo: userEmail)
+          .where('team_sport', isEqualTo: sportName)
+          .get();
+
+      if (teamSnapshot.docs.isNotEmpty) {
+        String teamID = teamSnapshot.docs.first.id;
+
+        CollectionReference brackets =
+            FirebaseFirestore.instance.collection('TournamentBracket');
+        QuerySnapshot bracketSnapshot = await brackets
+            .where('team_id', isEqualTo: teamID)
+            .where('activity_id', isEqualTo: activityID)
+            .get();
+
+        if (bracketSnapshot.docs.isNotEmpty) {
+          String bracketID = bracketSnapshot.docs.first.id;
+
+          // Delete the tournament bracket
+          await brackets.doc(bracketID.toString()).delete();
+
+          // Optionally, you may want to update other data or perform additional actions
+
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text('Cancellation Successful'),
+                content: Text(
+                    'You have successfully canceled your participation in this activity.'),
+                actions: <Widget>[
+                  TextButton(
+                    child: Text(
+                      'OK',
+                      style: TextStyle(
+                        color: Colors.black, // Set the text color to black
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              );
+            },
+          );
+        } else {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text('Bracket Not Found'),
+                content: Text('No tournament bracket found for this activity.'),
+                actions: <Widget>[
+                  TextButton(
+                    child: Text(
+                      'OK',
+                      style: TextStyle(
+                        color: Colors.black, // Set the text color to black
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              );
+            },
+          );
+        }
+      } else {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Notice'),
+              content: Text(
+                  'You dont have a team for $sportName, or not a team leader'),
+              actions: <Widget>[
+                TextButton(
+                  child: Text(
+                    'OK',
+                    style: TextStyle(
+                      color: Colors.black, // Set the text color to black
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } catch (e) {
+      print('Error deleting tournament bracket: $e');
+    }
+  }
+
   void navigateToManageActivityPage(
       BuildContext context, String activityID, String activityType) {
     Navigator.push(
@@ -1230,8 +1339,19 @@ class ActivityDetailsPage extends StatelessWidget {
                                     onPressed: () {
                                       // Add code to handle canceling the join request
                                       // This could be a function similar to updateActivityStatus
-                                      cancelJoin(context, activityID, userEmail,
-                                          activity['user_email']);
+                                      if (activity['activityType'] ==
+                                          'Normal Activity') {
+                                        cancelJoin(context, activityID,
+                                            userEmail, activity['user_email']);
+                                      } else {
+                                        print('not normal');
+                                        cancelJoinTournamentSparring(
+                                            context,
+                                            userEmail!,
+                                            activity['sportName'],
+                                            activityID,
+                                            activity['user_email']);
+                                      }
                                     },
                                     child: Text('Cancel Join'),
                                     style: ElevatedButton.styleFrom(
