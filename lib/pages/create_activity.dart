@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:csc_picker/csc_picker.dart';
+import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,7 +10,7 @@ import 'package:sportifyapp/pages/myactivity_page.dart';
 class CreateActivityPage extends StatefulWidget {
   final String activityType;
 
-  CreateActivityPage({required this.activityType});
+  const CreateActivityPage({super.key, required this.activityType});
 
   @override
   _CreateActivityPageState createState() => _CreateActivityPageState();
@@ -43,11 +44,11 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Status'),
+          title: const Text('Status'),
           content: Text(status),
           actions: <Widget>[
             TextButton(
-              child: Text(
+              child: const Text(
                 'OK',
                 style: TextStyle(
                   color: Colors.black, // Set the text color to black
@@ -124,7 +125,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
 
   String padding(angka) {
     if (angka < 10) {
-      return "0" + angka.toString();
+      return "0$angka";
     } else {
       return angka.toString();
     }
@@ -195,10 +196,12 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
         'activityStatus': 'Waiting',
       });
 
-      if (widget.activityType == 'Normal Activity')
+      if (widget.activityType == 'Normal Activity') {
         addParticipant(nextActivityID.toString(), userEmail!);
-      if (widget.activityType == 'Sparring')
+      }
+      if (widget.activityType == 'Sparring') {
         addTournamentBracket(nextActivityID.toString(), userEmail!, teamID!);
+      }
 
       await updateLatestActivityID(nextActivityID);
       await showStatusDialog('Activity created successfully!');
@@ -361,22 +364,24 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
   List<String> locationRecommendations = [];
   bool isPrivate = false;
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Create New Activity'),
-        backgroundColor: Color.fromARGB(255, 230, 0, 0),
+        title: const Text('Create New Activity'),
+        backgroundColor: const Color.fromARGB(255, 230, 0, 0),
       ),
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          padding: EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Activity Type: ${widget.activityType}',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              SizedBox(height: 20),
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
               StreamBuilder<QuerySnapshot>(
                 stream:
                     FirebaseFirestore.instance.collection('sports').snapshots(),
@@ -387,7 +392,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                   }
 
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return CircularProgressIndicator(); // Loading indicator
+                    return const CircularProgressIndicator(); // Loading indicator
                   }
 
                   var sportsList = snapshot.data!.docs;
@@ -409,7 +414,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                         selectedSport = value;
                       });
                     },
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Sport',
                       border: OutlineInputBorder(),
                       focusedBorder: OutlineInputBorder(
@@ -421,9 +426,9 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                 },
               ),
               Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: TextFormField(
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Activity Title',
                     border: OutlineInputBorder(),
                     focusedBorder: OutlineInputBorder(
@@ -444,7 +449,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
               ),
 
               Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: CSCPicker(
                   onCountryChanged: (country) {
                     setState(() {
@@ -463,7 +468,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
               ),
 
               Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: Autocomplete<String>(
                   optionsBuilder: (TextEditingValue textEditingValue) async {
                     if (textEditingValue.text == '') {
@@ -489,7 +494,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                         activityLocationController.text = value;
                       },
                       onFieldSubmitted: (value) => onFieldSubmitted(),
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: 'Activity Location',
                         border: OutlineInputBorder(),
                         focusedBorder: OutlineInputBorder(
@@ -543,9 +548,9 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
               //   isCrossBtnShown: true,
               // ),
               Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: TextFormField(
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Time Start',
                     border: OutlineInputBorder(),
                     focusedBorder: OutlineInputBorder(
@@ -553,7 +558,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                     ),
                     labelStyle: TextStyle(color: Colors.black),
                   ),
-                  style: TextStyle(fontSize: 20),
+                  style: const TextStyle(fontSize: 20),
                   onTap: () => _selectTime(context),
                   controller: TextEditingController(
                     text:
@@ -563,9 +568,9 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: TextFormField(
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Date Start',
                     border: OutlineInputBorder(),
                     focusedBorder: OutlineInputBorder(
@@ -573,7 +578,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                     ),
                     labelStyle: TextStyle(color: Colors.black),
                   ),
-                  style: TextStyle(fontSize: 20),
+                  style: const TextStyle(fontSize: 20),
                   onTap: () => _selectDate(context),
                   controller: TextEditingController(
                     text:
@@ -583,9 +588,9 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: TextFormField(
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Activity Fee(per person)',
                     border: OutlineInputBorder(),
                     focusedBorder: OutlineInputBorder(
@@ -612,9 +617,9 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
               if (widget.activityType == 'Normal Activity' ||
                   widget.activityType == 'Sparring')
                 Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: TextFormField(
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Activity Duration in hour',
                       border: OutlineInputBorder(),
                       focusedBorder: OutlineInputBorder(
@@ -639,9 +644,9 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                   ),
                 ),
               Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: TextFormField(
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Activity Description',
                     border: OutlineInputBorder(),
                     focusedBorder: OutlineInputBorder(
@@ -661,9 +666,9 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
               if (widget.activityType == 'Normal Activity' ||
                   widget.activityType == 'Tournament')
                 Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: TextFormField(
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Activity Quota',
                       border: OutlineInputBorder(),
                       focusedBorder: OutlineInputBorder(
@@ -689,9 +694,9 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                 ),
               if (widget.activityType == 'Tournament')
                 Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: TextFormField(
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Registration Start (Date)',
                       border: OutlineInputBorder(),
                       focusedBorder: OutlineInputBorder(
@@ -699,7 +704,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                       ),
                       labelStyle: TextStyle(color: Colors.black),
                     ),
-                    style: TextStyle(fontSize: 20),
+                    style: const TextStyle(fontSize: 20),
                     onTap: () => registrationStartDate(context),
                     controller: TextEditingController(
                       text:
@@ -710,9 +715,9 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                 ),
               if (widget.activityType == 'Tournament')
                 Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: TextFormField(
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Registration End (Date & Time)',
                       border: OutlineInputBorder(),
                       focusedBorder: OutlineInputBorder(
@@ -720,7 +725,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                       ),
                       labelStyle: TextStyle(color: Colors.black),
                     ),
-                    style: TextStyle(fontSize: 20),
+                    style: const TextStyle(fontSize: 20),
                     onTap: () => registrationEndDate(context),
                     controller: TextEditingController(
                       text:
@@ -729,14 +734,14 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                     readOnly: true,
                   ),
                 ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               if (widget.activityType ==
                   'Normal Activity') // Add this condition
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: 10),
-                    Text(
+                    const SizedBox(height: 10),
+                    const Text(
                       'Privacy:',
                       style:
                           TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -749,8 +754,8 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                           isPrivate = false;
                         });
                       },
-                      title: Text('Anyone can join'),
-                      activeColor: Color.fromARGB(255, 230, 0, 0),
+                      title: const Text('Anyone can join'),
+                      activeColor: const Color.fromARGB(255, 230, 0, 0),
                     ),
                     RadioListTile(
                         value: true,
@@ -760,21 +765,23 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
                             isPrivate = true;
                           });
                         },
-                        title: Text('Private'),
-                        activeColor: Color.fromARGB(255, 230, 0, 0)),
+                        title: const Text('Private'),
+                        activeColor: const Color.fromARGB(255, 230, 0, 0)),
                   ],
                 ),
-              Container(
+              SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     addActivity(); // Handle the submission of the form here
                     // You can access the entered values using the controllers
+                    await sendNotif("New $selectedSport Match Created",
+                        "${activityTitleController.text} At ${DateFormat('dd-MM-yyyy').format(selectedDate)} ${activityLocationController.text} ${padding(selectedTime.hour)}:${padding(selectedTime.minute)}");
                   },
-                  child: Text('Submit'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color.fromARGB(255, 230, 0, 0),
+                    backgroundColor: const Color.fromARGB(255, 230, 0, 0),
                   ),
+                  child: const Text('Submit'),
                 ),
               ),
             ],
@@ -782,5 +789,31 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
         ),
       ),
     );
+  }
+
+  Future<void> sendNotif(title, body) async {
+    await Dio()
+        .post(
+          'https://fcm.googleapis.com/fcm/send',
+          data: {
+            "notification": {"body": body, "title": title},
+            "priority": "high",
+            "data": {
+              "click_action": "FLUTTER_NOTIFICATION_CLICK",
+              "id": "1",
+              "status": "done",
+              "storyId": "story_12345",
+            },
+            "to": "/topics/topic",
+          },
+          options: Options(
+            headers: {
+              "Authorization":
+                  "key=AAAApU5pFUE:APA91bE99jALbnqFnYr1DiPi8jU3zP_WnA_Rk6-EtjRqHR_fzozuGx8eY7uwy_zNm6OplBZYV57CKjakwGvmTBkklg60VkW3CN4Uh1EwXZDrk7Gd3PDNdNcO7sMB-fKT0u59qmr1Yyh5",
+              "Content-Type": "application/json"
+            },
+          ),
+        )
+        .then((value) => print(value.data));
   }
 }

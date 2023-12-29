@@ -1,5 +1,9 @@
 import 'dart:async';
+import 'dart:developer';
 
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sportifyapp/pages/activitylist_page.dart';
@@ -9,25 +13,29 @@ import 'package:sportifyapp/pages/profile_page.dart';
 import 'package:sportifyapp/pages/team_page.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primaryColor: Color.fromARGB(255, 255, 102, 0),
+        primaryColor: const Color.fromARGB(255, 255, 102, 0),
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: HomePage(),
+      home: const HomePage(),
     );
   }
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key});
+  const HomePage({
+    super.key,
+  });
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -39,6 +47,54 @@ class _HomePageState extends State<HomePage> {
 
   void signUserOut() {
     FirebaseAuth.instance.signOut();
+  }
+
+  var mToken = '';
+
+  Future<void> firebasePermission() async {
+    await Firebase.initializeApp();
+
+    await FirebaseMessaging.instance.getInitialMessage();
+
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: true,
+      carPlay: false,
+      criticalAlert: false,
+      provisional: false,
+      sound: true,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      getToken();
+    } else if (settings.authorizationStatus ==
+        AuthorizationStatus.provisional) {
+      getToken();
+    } else {}
+    //FirebaseMessaging.onBackgroundMessage(_backgroundHandler);
+    await FirebaseMessaging.instance.subscribeToTopic("topic");
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Got a message whilst in the foreground!');
+      print('Message data: ${message.data}');
+
+      if (message.notification != null) {
+        print('Message also contained a notification: ${message.notification}');
+      }
+    });
+  }
+
+  Future<void> getToken() async {
+    await FirebaseMessaging.instance.getToken().then((token) {
+      log("token : $token");
+      mToken = token ?? '';
+    });
+  }
+
+  Future<void> _backgroundHandler(RemoteMessage message) async {
+    print("Handling a background message: ${message.messageId}");
   }
 
   // var ctr = 1;
@@ -55,28 +111,13 @@ class _HomePageState extends State<HomePage> {
   //   );
   // }
 
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   print("Inside wx");
-  //   createTimer();
-  //   try {
-  //     print("abc");
+  @override
+  void initState() {
+    super.initState();
+    firebasePermission();
+  }
 
-  //     /*
-  //     print("abc");
-  //     if (timer.isActive) {
-  //       print("active");
-  //     } else {
-  //       print("not active");
-  //     }*/
-  //   } catch (err) {
-  //     print("error");
-  //     print(err);
-  //   }
-  // }
-
-  List<Widget> _pages = [
+  final List<Widget> _pages = [
     MyActivityPage(),
     TeamPage(),
     ActivityListPage(
@@ -92,8 +133,8 @@ class _HomePageState extends State<HomePage> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: Color.fromARGB(255, 230, 0, 0),
-        items: [
+        selectedItemColor: const Color.fromARGB(255, 230, 0, 0),
+        items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.directions_run),
             label: 'My Activity',
@@ -129,7 +170,7 @@ class PlaceholderWidget extends StatelessWidget {
   final Color color;
   final String title;
 
-  PlaceholderWidget(this.color, this.title);
+  const PlaceholderWidget(this.color, this.title, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -138,7 +179,7 @@ class PlaceholderWidget extends StatelessWidget {
       child: Center(
         child: Text(
           title,
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
       ),
     );
